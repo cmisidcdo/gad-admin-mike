@@ -1,0 +1,62 @@
+<?php
+
+use App\Http\Controllers\ChangePasswordController;
+use App\Http\Controllers\RecycleBin as ControllersRecycleBin;
+use App\Livewire\ChangePassword;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth; //This is for the `Auth::routes();`
+use App\Livewire\DocumentArchiveTable;
+use App\Http\Controllers\RecycleBinController;
+use App\Livewire\RecycleBin;
+
+use function Termwind\render;
+
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register web routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "web" middleware group. Make something great!
+|
+*/
+
+Route::get('/', function () {
+    // return view('welcome');
+    return redirect()->route('login');
+});
+
+// Disable registration
+Auth::routes(['register' => false]);
+
+
+Route::group(['middleware' => 'auth'], function () {
+    // Your authenticated routes go here
+    // Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+    Route::get('/home', [App\Http\Controllers\DashboardController::class, 'index'])->name('home'); // Supposed to be a dashboard. Now, it's home.
+    Route::get('/archive', [App\Http\Controllers\ArchiveController::class, 'index'])->name('archive');
+    Route::get('/reference', [App\Http\Controllers\ReferenceController::class, 'index'])->name('reference');
+    Route::get('/user-administration', [App\Http\Controllers\UserAdministrationController::class, 'index'])->name('user-administration');
+    Route::get('/not-yet-submitted', [App\Http\Controllers\NotYetSubmittedController::class, 'index'])->name('not-yet-submitted');
+    Route::get('/document-approval', [App\Http\Controllers\DocumentApprovalController::class, 'index'])->name('document-approval');
+
+    // PDF Preview
+    Route::get('/preview-pdf/{trans_id}', [DocumentArchiveTable::class, 'previewPdf'])->name('preview-pdf');
+
+    // Download
+    Route::get('/download/{trans_id}', [DocumentArchiveTable::class, 'download'])->name('download');
+
+    // Change Password
+    Route::get('/change-password', [ChangePasswordController::class, 'index'])->name('change-password');
+
+    // Recycle Bin
+    Route::get('/recycle-bin', [RecycleBinController::class, 'index'])->name('change-password');
+});
+
+Livewire::setScriptRoute(function ($handle) {
+    return Route::get('/gad-admin/livewire/livewire.js', $handle);
+});
+Livewire::setUpdateRoute(function ($handle) {
+    return Route::post('/gad-admin/livewire/update', $handle);
+});
