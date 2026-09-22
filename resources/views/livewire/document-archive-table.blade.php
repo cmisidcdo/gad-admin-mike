@@ -4,7 +4,28 @@
     $permissions = App\Models\TblUserAccessPermission::where('id_user', auth()->user()->id)->where('id_cms_menu', '3')->first();
     @endphp
 
-    <h5 class="card-title">Document Archive</h5>
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+        <h5 class="card-title mb-0">Document Archive</h5>
+        <div class="d-flex align-items-center gap-2">
+            <div class="input-group input-group-sm" style="width: auto;">
+                <span class="input-group-text fw-medium" style="background-color: #014C8F26;">Sem</span>
+                <select wire:model.live="filterSemester" class="form-select form-select-sm">
+                    <option value="">All</option>
+                    <option value="1">1st Semester (Jan - Jun)</option>
+                    <option value="2">2nd Semester (Jul - Dec)</option>
+                </select>
+            </div>
+            <div class="input-group input-group-sm" style="width: auto;">
+                <span class="input-group-text fw-medium" style="background-color: #014C8F26;">Year</span>
+                <select wire:model.live="filterYear" class="form-select form-select-sm">
+                    <option value="">All</option>
+                    @foreach($availableYears as $year)
+                    <option value="{{ $year }}">{{ $year }}</option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+    </div>
 
     <!-- <div class="d-flex align-items-center">
         <div class="input-group mb-3">
@@ -59,7 +80,7 @@
                     <div class="input-group">
                         <span class="input-group-text fw-medium" style="background-color: #014C8F26;">Sector</span>
                         <select wire:model.live="filterSector" class="form-select" @if($allowedSectors->isEmpty()) disabled @endif>
-                            <option value="">{{ $allowedSectors->isEmpty() ? 'No Sector Assigned' : 'Choose Sector...' }}</option>
+                            <option value="">{{ $allowedSectors->isEmpty() ? 'No Sector Assigned' : 'All' }}</option>
                             @foreach($allowedSectors as $s)
                             <option value="{{ $s->sector_id }}">{{ $s->sector_name }}</option>
                             @endforeach
@@ -72,7 +93,7 @@
                     <div class="input-group">
                         <span class="input-group-text fw-medium" style="background-color: #014C8F26;">Sub Sector</span>
                         <select wire:model.live="filterSubSector" class="form-select" @if(empty($filterSector)) disabled @endif>
-                            <option value="">{{ empty($filterSector) ? 'Select Sector first...' : 'All Allowed Sub-Sectors' }}</option>
+                            <option value="">{{ empty($filterSector) ? 'All Sub-Sectors' : 'All Allowed Sub-Sectors' }}</option>
                             @foreach($filterSubSectors as $sub)
                             <option value="{{ $sub->sub_sector_id }}">{{ $sub->sub_sector_name }}</option>
                             @endforeach
@@ -108,6 +129,8 @@
                         <p class="text-muted mb-0">Your account has not been assigned to any sector. Document uploads and archive viewing are disabled. Please contact the administrator.</p>
                     </div>
                 </div>
+                @elseif(!empty($filterYear) || !empty($filterSemester) || !empty($search))
+                <p class="text-center text-muted py-4"><i class="bi bi-folder-x me-1"></i> No documents found matching the selected filters.</p>
                 @else
                 <p class="text-center text-muted"><i class="bi bi-folder-x me-1"></i> You have not submitted any documents yet. Click <strong>"Add"</strong> above to submit a document.</p>
                 @endif
@@ -146,13 +169,18 @@
             <table class="table table-bordered table-hover align-middle">
                 <thead class="custom-thead-document-archive text-center">
                     <tr>
-                        <th scope="col"></th>
+                        <th scope="col" style="width: 50px;"></th>
                         <th scope="col" style="width: 140px;">Status</th>
+                        <th scope="col" style="width: 80px;">Year</th>
+                        <th scope="col" style="width: 95px;">Sem</th>
                         <th scope="col">Sector</th>
                         <th scope="col">Sub Sector</th>
                         <th scope="col">Document Type</th>
                         <th scope="col">Description</th>
                         <th scope="col">Source</th>
+                        @if($this->isAdministrator())
+                        <th scope="col" style="width: 80px;">Delete</th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody>
@@ -183,11 +211,23 @@
                             </span>
                             @endif
                         </td>
+                        <td class="text-center align-middle fw-medium">{{ $item->year ?? '—' }}</td>
+                        <td class="text-center align-middle fw-medium">{{ $item->semester_label ?? '—' }}</td>
                         <td>{{ $item['sector_name'] }}</td>
                         <td>{{ $item['sub_sector_name'] }}</td>
                         <td>{{ $item['doctype_desc'] }}</td>
                         <td>{{ $item['document_desc'] }}</td>
                         <td>{{ $item['document_source'] }}</td>
+                        @if($this->isAdministrator())
+                        <td class="text-center align-middle py-2">
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-danger"
+                                    wire:click="openDeleteDocumentConfirm('{{ $item->trans_id }}')"
+                                    title="Delete Document">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                        @endif
                     </tr>
                     @endforeach
                 </tbody>
@@ -293,14 +333,26 @@
                             @error('document_source')<span class="badge border-danger border-1 text-danger">{{ $message }}</span>@enderror
                             <div class="input-group mb-2">
                                 <span class="input-group-text" id="basic-addon1">Source:</span>
-                                <select wire:model="document_source" class="form-select">
-                                    <option value="">Select Department...</option>
-                                    @foreach($departments as $department)
-                                    <option value="{{ $department->department_id }}" @selected($document_source == $department->department_id)>{{ $department->department_name }}</option>
-                                    @endforeach
-                                </select>
+                                {{-- Source is automatically set from the logged-in user's office and is read-only --}}
+                                @php
+                                    // On edit, resolve the stored department ID to a name; on add use the current user's dept
+                                    $displaySource = $userDeptName;
+                                    if ($Posttransid && $document_source) {
+                                        $storedDept = \App\Models\TblRefDepartment::where('department_id', $document_source)->value('department_name');
+                                        $displaySource = $storedDept ?? $document_source;
+                                    }
+                                @endphp
+                                <input type="text"
+                                       class="form-control bg-light text-dark"
+                                       value="{{ $displaySource }}"
+                                       readonly
+                                       tabindex="-1"
+                                       style="cursor: default; background-color: #f8f9fa !important;">
+                                {{-- Hidden input keeps the value bound to Livewire --}}
+                                <input type="hidden" wire:model="document_source">
                             </div>
                         </div>
+
                         <hr>
 
                         <!-- Save to tbl_document_data -->
@@ -602,4 +654,48 @@
     </div>
     @endif
     <!-- END MODAL -->
+
+    <!-- CONFIRM DELETE DOCUMENT MODAL (Administrator only) -->
+    @if($alertDocumentDelete && $this->isAdministrator())
+    <div class="modal fade show" id="deleteDocumentModal" tabindex="-1" aria-modal="true" role="dialog"
+         style="display: block; background-color: rgba(1, 76, 143, 0.5); z-index: 1070;">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg border-0">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title fw-bold">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>Confirm Delete Document
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" aria-label="Close"
+                            wire:click="closeDeleteDocumentConfirm"></button>
+                </div>
+                <div class="modal-body text-center p-4">
+                    <img src="{{ asset('assets/img/warning.svg') }}" alt="Warning"
+                         style="width: 80px; height: 80px;" class="mb-3">
+                    <h6 class="fw-bold">Are you sure you want to delete this document?</h6>
+                    <p class="text-muted small mb-0">
+                        This will permanently remove the document archive entry and
+                        <strong>all attached files</strong>. This action cannot be undone.
+                    </p>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary"
+                            wire:click="closeDeleteDocumentConfirm"
+                            wire:loading.class="opacity-50">
+                        Cancel
+                    </button>
+                    <button type="button" class="btn btn-danger"
+                            wire:click="deleteDocument"
+                            wire:loading.attr="disabled"
+                            wire:target="deleteDocument">
+                        <span wire:loading wire:target="deleteDocument"
+                              class="spinner-border spinner-border-sm me-1" role="status"></span>
+                        <i class="bi bi-trash me-1"></i> Delete Document
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+    <!-- END CONFIRM DELETE DOCUMENT MODAL -->
+
 </div>

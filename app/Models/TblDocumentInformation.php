@@ -31,6 +31,51 @@ class TblDocumentInformation extends Model
         'approved_at' => 'datetime',
     ];
 
+    /**
+     * Get document submission year.
+     */
+    public function getYearAttribute()
+    {
+        if ($this->created_at) {
+            return $this->created_at->format('Y');
+        }
+        if (!empty($this->create_date)) {
+            $parts = explode(' ', $this->create_date);
+            $dateParts = explode('/', $parts[0]);
+            if (isset($dateParts[2]) && is_numeric($dateParts[2])) {
+                return $dateParts[2];
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Get document submission semester (1 or 2).
+     */
+    public function getSemesterAttribute()
+    {
+        $month = null;
+        if ($this->created_at) {
+            $month = (int) $this->created_at->format('n');
+        } elseif (!empty($this->create_date)) {
+            $parts = explode(' ', $this->create_date);
+            $dateParts = explode('/', $parts[0]);
+            if (isset($dateParts[0]) && is_numeric($dateParts[0])) {
+                $month = (int) $dateParts[0];
+            }
+        }
+        return $month ? ($month <= 6 ? 1 : 2) : null;
+    }
+
+    /**
+     * Get human-friendly semester label.
+     */
+    public function getSemesterLabelAttribute()
+    {
+        $sem = $this->semester;
+        return $sem ? ($sem == 1 ? '1st Sem' : '2nd Sem') : '—';
+    }
+
 
     //////////////////////////////////////////////////////OTHER TABLES/////////////////////////////////////////////////////////////
     /**

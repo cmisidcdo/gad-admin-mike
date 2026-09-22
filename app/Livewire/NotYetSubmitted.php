@@ -10,6 +10,7 @@ use App\Models\TblRefSubSector;
 use App\Models\TblUserSectorPermission;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Component;
@@ -41,6 +42,7 @@ class NotYetSubmitted extends Component
     public $singleUserName = '';
     public $singleUserEmail = '';
     public $singleUserDepartment = '';
+    public $singleUserUnsubmittedSectors = [];
     public $modalRecipientsCount = 0;
     public $modalValidEmailCount = 0;
     public $modalMissingEmailCount = 0;
@@ -52,10 +54,10 @@ class NotYetSubmitted extends Component
             abort(403, 'Unauthorized');
         }
 
-        // Default to current year
-        $this->selectedYear = (string) Carbon::now()->year;
-        $this->selectedSemester = '';
-        $this->selectedSector = '';
+        // Default to current year and 1st semester
+        $this->selectedYear     = (string) Carbon::now()->year;
+        $this->selectedSemester = '1';
+        $this->selectedSector   = '';
         $this->selectedSubSector = '';
     }
 
@@ -115,12 +117,12 @@ class NotYetSubmitted extends Component
     {
         $this->search = '';
         $this->selectedDepartment = '';
-        $this->selectedYear = (string) Carbon::now()->year;
-        $this->selectedSemester = '';
-        $this->selectedSector = '';
+        $this->selectedYear     = (string) Carbon::now()->year;
+        $this->selectedSemester = '1';
+        $this->selectedSector   = '';
         $this->selectedSubSector = '';
-        $this->selectedUserIds = [];
-        $this->selectAll = false;
+        $this->selectedUserIds  = [];
+        $this->selectAll        = false;
         $this->resetPage();
     }
 
@@ -242,13 +244,10 @@ class NotYetSubmitted extends Component
     }
 
     /**
-     * Build the query for active users with 'User' role (user_role_id = 4) who have not submitted.
+     * Apply date/period filtering to a document query.
      */
-    public function getUnsubmittedUsersQuery()
+    protected function applyDateRangeToQuery($query, string $dateColumn = 'created_at', ?string $legacyDateColumn = 'create_date')
     {
-        // 1. Query documents submitted in the selected period, sector, and subsector
-        $docQuery = TblDocumentInformation::query();
-
         if (!empty($this->selectedYear)) {
             $year = (int) $this->selectedYear;
             if ($this->selectedSemester === '1') {
@@ -262,62 +261,95 @@ class NotYetSubmitted extends Component
                 $to   = Carbon::createFromDate($year, 12, 31)->endOfDay()->format('Y-m-d H:i:s');
             }
 
-            $docQuery->where(function ($q) use ($from, $to) {
-                $q->whereBetween('created_at', [$from, $to])
-                  ->orWhereRaw("STR_TO_DATE(create_date, '%c/%e/%Y %r') BETWEEN ? AND ?", [$from, $to]);
+            $query->where(function ($q) use ($from, $to, $dateColumn, $legacyDateColumn) {
+                $q->whereBetween($dateColumn, [$from, $to]);
+                if ($legacyDateColumn) {
+                    $q->orWhereRaw("STR_TO_DATE({$legacyDateColumn}, '%c/%e/%Y %r') BETWEEN ? AND ?", [$from, $to]);
+                }
             });
         } elseif (!empty($this->selectedSemester)) {
             if ($this->selectedSemester === '1') {
-                $docQuery->where(function ($q) {
-                    $q->whereRaw("MONTH(created_at) BETWEEN 1 AND 6")
-                      ->orWhereRaw("MONTH(STR_TO_DATE(create_date, '%c/%e/%Y %r')) BETWEEN 1 AND 6");
+                $query->where(function ($q) use ($dateColumn, $legacyDateColumn) {
+                    $q->whereRaw("MONTH({$dateColumn}) BETWEEN 1 AND 6");
+                    if ($legacyDateColumn) {
+                        $q->orWhereRaw("MONTH(STR_TO_DATE({$legacyDateColumn}, '%c/%e/%Y %r')) BETWEEN 1 AND 6");
+                    }
                 });
             } elseif ($this->selectedSemester === '2') {
-                $docQuery->where(function ($q) {
-                    $q->whereRaw("MONTH(created_at) BETWEEN 7 AND 12")
-                      ->orWhereRaw("MONTH(STR_TO_DATE(create_date, '%c/%e/%Y %r')) BETWEEN 7 AND 12");
+                $query->where(function ($q) use ($dateColumn, $legacyDateColumn) {
+                    $q->whereRaw("MONTH({$dateColumn}) BETWEEN 7 AND 12");
+                    if ($legacyDateColumn) {
+                        $q->orWhereRaw("MONTH(STR_TO_DATE({$legacyDateColumn}, '%c/%e/%Y %r')) BETWEEN 7 AND 12");
+                    }
                 });
             }
         }
+    }
 
-        // Apply Sector and Subsector to documents
-        if (!empty($this->selectedSector)) {
-            $docQuery->where('sector', $this->selectedSector);
-        }
-
-        if (!empty($this->selectedSubSector)) {
-            $docQuery->where('sub_sector', $this->selectedSubSector);
-        }
-
-        // Distinct user identifiers (name or user_id) who submitted
-        $submittedIdentifiers = $docQuery->whereNotNull('create_user')
-            ->pluck('create_user')
-            ->unique()
-            ->values()
-            ->toArray();
-
-        // 2. Query Active Users with 'User' role (user_role_id = 4) who DID NOT submit
-        $usersQuery = User::with(['department', 'role'])
+    /**
+     * Build the query for active users with 'User' role (user_role_id = 4) who have unsubmitted assigned sectors/subsectors.
+     */
+    public function getUnsubmittedUsersQuery()
+    {
+        $usersQuery = User::with(['department', 'role', 'sectorPermissions.sector', 'sectorPermissions.subSector'])
             ->where('is_active', 'Y')
             ->where('user_role_id', 4);
 
-        if (!empty($submittedIdentifiers)) {
-            $usersQuery->whereNotIn('name', $submittedIdentifiers)
-                       ->whereNotIn('user_id', $submittedIdentifiers);
-        }
+        $selectedSector = $this->selectedSector;
+        $selectedSubSector = $this->selectedSubSector;
 
-        // Sector permissions filtering: ONLY include users assigned to the filtered sector and subsector
-        if (!empty($this->selectedSector)) {
-            $usersQuery->whereHas('sectorPermissions', function ($sq) {
-                $sq->where('sector_id', (string) $this->selectedSector);
-                if (!empty($this->selectedSubSector)) {
-                    $sq->where(function ($subQ) {
+        $usersQuery->where(function ($query) use ($selectedSector, $selectedSubSector) {
+            // 1. Users with sector permissions who have at least one unsubmitted assignment
+            $query->whereHas('sectorPermissions', function ($pQuery) use ($selectedSector, $selectedSubSector) {
+                if (!empty($selectedSector)) {
+                    $pQuery->where('sector_id', (string) $selectedSector);
+                }
+                if (!empty($selectedSubSector)) {
+                    $pQuery->where(function ($subQ) use ($selectedSubSector) {
                         $subQ->whereNull('sub_sector_id')
-                             ->orWhere('sub_sector_id', (string) $this->selectedSubSector);
+                             ->orWhere('sub_sector_id', (string) $selectedSubSector);
                     });
                 }
+
+                // Check that NO document was submitted for this permission in the period
+                $pQuery->whereNotExists(function ($dQuery) use ($selectedSubSector) {
+                    $dQuery->select(DB::raw(1))
+                        ->from('tbl_document_information as d')
+                        ->where(function ($uMatch) {
+                            $uMatch->whereColumn('d.create_user', 'users.name')
+                                   ->orWhereColumn('d.create_user', 'users.user_id');
+                        })
+                        ->whereColumn('d.sector', 'tbl_user_sector_permission.sector_id')
+                        ->where(function ($subMatch) use ($selectedSubSector) {
+                            if (!empty($selectedSubSector)) {
+                                $subMatch->where('d.sub_sector', (string) $selectedSubSector);
+                            } else {
+                                $subMatch->whereNull('tbl_user_sector_permission.sub_sector_id')
+                                         ->orWhereColumn('d.sub_sector', 'tbl_user_sector_permission.sub_sector_id');
+                            }
+                        });
+
+                    $this->applyDateRangeToQuery($dQuery, 'd.created_at', 'd.create_date');
+                });
             });
-        }
+
+            // 2. When NO sector filter is active, also include users who have NO assigned sector permissions and have 0 submitted documents
+            if (empty($selectedSector)) {
+                $query->orWhere(function ($noPermQuery) {
+                    $noPermQuery->whereDoesntHave('sectorPermissions')
+                        ->whereNotExists(function ($dQuery) {
+                            $dQuery->select(DB::raw(1))
+                                ->from('tbl_document_information as d')
+                                ->where(function ($uMatch) {
+                                    $uMatch->whereColumn('d.create_user', 'users.name')
+                                           ->orWhereColumn('d.create_user', 'users.user_id');
+                                });
+
+                            $this->applyDateRangeToQuery($dQuery, 'd.created_at', 'd.create_date');
+                        });
+                });
+            }
+        });
 
         // Apply department filter
         if (!empty($this->selectedDepartment)) {
@@ -338,6 +370,119 @@ class NotYetSubmitted extends Component
         }
 
         return $usersQuery;
+    }
+
+    /**
+     * Compute unsubmitted sectors and subsectors for a given user.
+     */
+    public function calculateUnsubmittedSectorsForUser($user, $userDocs, $allSectorsMap, $allSubSectorsMap): array
+    {
+        $perms = $user->sectorPermissions;
+
+        // Apply active sector/subsector filter if selected
+        if (!empty($this->selectedSector)) {
+            $perms = $perms->where('sector_id', (string) $this->selectedSector);
+            if (!empty($this->selectedSubSector)) {
+                $perms = $perms->filter(function ($p) {
+                    return $p->sub_sector_id === null || (string) $p->sub_sector_id === (string) $this->selectedSubSector;
+                });
+            }
+        }
+
+        $unsubmitted = [];
+
+        if ($perms->isEmpty()) {
+            if ($userDocs->isEmpty()) {
+                $unsubmitted[] = [
+                    'sector_id' => null,
+                    'sector_name' => 'Unassigned',
+                    'sub_sector_id' => null,
+                    'sub_sector_name' => null,
+                    'display' => 'No assigned sectors',
+                    'is_unassigned' => true,
+                ];
+            }
+        } else {
+            foreach ($perms as $perm) {
+                $sec = $allSectorsMap->get($perm->sector_id);
+                $secName = $sec ? $sec->sector_name : "Sector {$perm->sector_id}";
+
+                if ($perm->sub_sector_id !== null) {
+                    $subSecList = $allSubSectorsMap->get($perm->sector_id, collect());
+                    $sub = $subSecList->firstWhere('sub_sector_id', $perm->sub_sector_id);
+                    $subName = $sub ? $sub->sub_sector_name : "Subsector {$perm->sub_sector_id}";
+
+                    $hasSubmitted = $userDocs->where('sector', $perm->sector_id)
+                        ->where('sub_sector', $perm->sub_sector_id)
+                        ->isNotEmpty();
+
+                    if (!$hasSubmitted) {
+                        $unsubmitted[] = [
+                            'sector_id' => $perm->sector_id,
+                            'sector_name' => $secName,
+                            'sub_sector_id' => $perm->sub_sector_id,
+                            'sub_sector_name' => $subName,
+                            'display' => "{$secName}: {$subName}",
+                            'is_unassigned' => false,
+                        ];
+                    }
+                } else {
+                    // All subsectors for this sector
+                    $subSecList = $allSubSectorsMap->get($perm->sector_id, collect());
+                    if (!empty($this->selectedSubSector)) {
+                        $subSecList = $subSecList->where('sub_sector_id', (string) $this->selectedSubSector);
+                    }
+
+                    if ($subSecList->isEmpty()) {
+                        $hasSubmitted = $userDocs->where('sector', $perm->sector_id)->isNotEmpty();
+                        if (!$hasSubmitted) {
+                            $unsubmitted[] = [
+                                'sector_id' => $perm->sector_id,
+                                'sector_name' => $secName,
+                                'sub_sector_id' => null,
+                                'sub_sector_name' => null,
+                                'display' => $secName,
+                                'is_unassigned' => false,
+                            ];
+                        }
+                    } else {
+                        $unsubmittedSubs = [];
+                        foreach ($subSecList as $sub) {
+                            $hasSubmitted = $userDocs->where('sector', $perm->sector_id)
+                                ->where('sub_sector', $sub->sub_sector_id)
+                                ->isNotEmpty();
+                            if (!$hasSubmitted) {
+                                $unsubmittedSubs[] = $sub;
+                            }
+                        }
+
+                        if (count($unsubmittedSubs) === $subSecList->count() && empty($this->selectedSubSector)) {
+                            $unsubmitted[] = [
+                                'sector_id' => $perm->sector_id,
+                                'sector_name' => $secName,
+                                'sub_sector_id' => null,
+                                'sub_sector_name' => 'All Subsectors',
+                                'display' => "{$secName} (All Subsectors)",
+                                'is_unassigned' => false,
+                            ];
+                        } else {
+                            foreach ($unsubmittedSubs as $sub) {
+                                $unsubmitted[] = [
+                                    'sector_id' => $perm->sector_id,
+                                    'sector_name' => $secName,
+                                    'sub_sector_id' => $sub->sub_sector_id,
+                                    'sub_sector_name' => $sub->sub_sector_name,
+                                    'display' => "{$secName}: {$sub->sub_sector_name}",
+                                    'is_unassigned' => false,
+                                ];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return $unsubmitted;
     }
 
     /**
@@ -388,7 +533,7 @@ class NotYetSubmitted extends Component
      */
     public function openSingleEmailModal($userId)
     {
-        $user = User::with('department')->find($userId);
+        $user = User::with(['department', 'sectorPermissions.sector', 'sectorPermissions.subSector'])->find($userId);
 
         if (!$user) {
             session()->flash('error', 'Selected user was not found.');
@@ -402,6 +547,24 @@ class NotYetSubmitted extends Component
         $this->singleUserDepartment = $user->department->department_name ?? $user->office ?? 'N/A';
         $this->emailSubject = 'Reminder: Pending GAD Document Submission - ' . $this->getPeriodLabel();
         $this->emailCustomMessage = '';
+
+        // Compute unsubmitted sectors for this single user
+        $submittedDocsQuery = TblDocumentInformation::where(function ($q) use ($user) {
+            $q->where('create_user', $user->name)
+              ->orWhere('create_user', $user->user_id);
+        });
+        $this->applyDateRangeToQuery($submittedDocsQuery, 'created_at', 'create_date');
+        $userDocs = $submittedDocsQuery->get();
+
+        $allSectorsMap = TblRefSector::all()->keyBy('sector_id');
+        $allSubSectorsMap = TblRefSubSector::all()->groupBy('sector_id');
+
+        $this->singleUserUnsubmittedSectors = $this->calculateUnsubmittedSectorsForUser(
+            $user,
+            $userDocs,
+            $allSectorsMap,
+            $allSubSectorsMap
+        );
 
         $this->modalRecipientsCount = 1;
         $hasValidEmail = !empty($user->email) && filter_var($user->email, FILTER_VALIDATE_EMAIL);
@@ -423,6 +586,7 @@ class NotYetSubmitted extends Component
             'singleUserName',
             'singleUserEmail',
             'singleUserDepartment',
+            'singleUserUnsubmittedSectors',
             'emailCustomMessage',
             'modalRecipientsCount',
             'modalValidEmailCount',
@@ -466,7 +630,8 @@ class NotYetSubmitted extends Component
                     user: $user,
                     periodLabel: $periodLabel,
                     emailSubject: $this->emailSubject,
-                    customMessage: $this->emailCustomMessage
+                    customMessage: $this->emailCustomMessage,
+                    unsubmittedSectors: $this->singleUserUnsubmittedSectors
                 ));
 
                 session()->flash('status', "Reminder email was successfully sent to {$user->name} ({$user->email}).");
@@ -481,7 +646,7 @@ class NotYetSubmitted extends Component
 
         // 2. Selected or All Mode
         if ($this->emailMode === 'selected') {
-            $targetUsers = User::with('department')->whereIn('id', $this->selectedUserIds)->get();
+            $targetUsers = User::with(['department', 'sectorPermissions.sector', 'sectorPermissions.subSector'])->whereIn('id', $this->selectedUserIds)->get();
         } else {
             // 'all' Mode
             $targetUsers = $this->getUnsubmittedUsersQuery()->get();
@@ -493,6 +658,17 @@ class NotYetSubmitted extends Component
             return;
         }
 
+        $allSectorsMap = TblRefSector::all()->keyBy('sector_id');
+        $allSubSectorsMap = TblRefSubSector::all()->groupBy('sector_id');
+
+        $targetNames = $targetUsers->pluck('name')->filter()->unique()->toArray();
+        $targetIds = $targetUsers->pluck('user_id')->filter()->unique()->toArray();
+        $allTargetIdentifiers = array_unique(array_merge($targetNames, $targetIds));
+
+        $submittedDocsQuery = TblDocumentInformation::whereIn('create_user', $allTargetIdentifiers);
+        $this->applyDateRangeToQuery($submittedDocsQuery, 'created_at', 'create_date');
+        $allTargetDocs = $submittedDocsQuery->get();
+
         $sentCount = 0;
         $skippedCount = 0;
         $failedCount = 0;
@@ -503,12 +679,24 @@ class NotYetSubmitted extends Component
                 continue;
             }
 
+            $userDocs = $allTargetDocs->filter(function ($doc) use ($user) {
+                return $doc->create_user === $user->name || $doc->create_user === $user->user_id;
+            });
+
+            $unsubmittedSectors = $this->calculateUnsubmittedSectorsForUser(
+                $user,
+                $userDocs,
+                $allSectorsMap,
+                $allSubSectorsMap
+            );
+
             try {
                 Mail::to($user->email)->send(new SubmissionReminderMail(
                     user: $user,
                     periodLabel: $periodLabel,
                     emailSubject: $this->emailSubject,
-                    customMessage: $this->emailCustomMessage
+                    customMessage: $this->emailCustomMessage,
+                    unsubmittedSectors: $unsubmittedSectors
                 ));
                 $sentCount++;
             } catch (\Exception $e) {
@@ -596,40 +784,66 @@ class NotYetSubmitted extends Component
 
         $notSubmittedUsers = $usersQuery->orderBy('name', 'asc')->paginate(10);
 
+        // Preload sectors and subsectors for mapping
+        $allSectorsMap = $sectors->keyBy('sector_id');
+        $allSubSectorsMap = TblRefSubSector::all()->groupBy('sector_id');
+
+        // Batch-fetch submitted documents for current page users in single query
+        $pageUserNames = $notSubmittedUsers->pluck('name')->filter()->unique()->toArray();
+        $pageUserIds = $notSubmittedUsers->pluck('user_id')->filter()->unique()->toArray();
+        $allPageIdentifiers = array_unique(array_merge($pageUserNames, $pageUserIds));
+
+        $submittedDocsQuery = TblDocumentInformation::whereIn('create_user', $allPageIdentifiers);
+        $this->applyDateRangeToQuery($submittedDocsQuery, 'created_at', 'create_date');
+        $pageSubmittedDocs = $submittedDocsQuery->get();
+
+        foreach ($notSubmittedUsers as $user) {
+            $userDocs = $pageSubmittedDocs->filter(function ($doc) use ($user) {
+                return $doc->create_user === $user->name || $doc->create_user === $user->user_id;
+            });
+            $user->unsubmitted_sectors = $this->calculateUnsubmittedSectorsForUser(
+                $user,
+                $userDocs,
+                $allSectorsMap,
+                $allSubSectorsMap
+            );
+        }
+
         return view('livewire.not-yet-submitted', [
-            'departments'            => $departments,
-            'sectors'                => $sectors,
-            'subSectors'             => $subSectors,
-            'availableYears'         => $availableYears,
-            'notSubmittedUsers'      => $notSubmittedUsers,
-            'totalActiveUsersCount'  => $totalActiveUsersCount,
-            'totalSubmittedCount'    => $totalSubmittedCount,
-            'totalNotSubmitted'      => $totalNotSubmitted,
-            'currentPage'            => $notSubmittedUsers->currentPage(),
-            'totalPages'             => $notSubmittedUsers->lastPage(),
-            'totalRecords'           => $notSubmittedUsers->total(),
-            'noRecords'              => $notSubmittedUsers->isEmpty(),
-            'currentPeriodLabel'     => $this->getPeriodLabel(),
-            'selectedUserIds'        => $this->selectedUserIds,
-            'selectedYear'           => $this->selectedYear,
-            'selectedSemester'       => $this->selectedSemester,
-            'selectedSector'         => $this->selectedSector,
-            'selectedSubSector'      => $this->selectedSubSector,
-            'selectedDepartment'     => $this->selectedDepartment,
-            'search'                 => $this->search,
-            'errorMessage'           => $this->errorMessage,
-            'selectAll'              => $this->selectAll,
-            'showEmailModal'         => $this->showEmailModal,
-            'emailMode'              => $this->emailMode,
-            'emailSubject'           => $this->emailSubject,
-            'emailCustomMessage'     => $this->emailCustomMessage,
-            'singleUserId'           => $this->singleUserId,
-            'singleUserName'         => $this->singleUserName,
-            'singleUserEmail'        => $this->singleUserEmail,
-            'singleUserDepartment'   => $this->singleUserDepartment,
-            'modalRecipientsCount'   => $this->modalRecipientsCount,
-            'modalValidEmailCount'   => $this->modalValidEmailCount,
-            'modalMissingEmailCount' => $this->modalMissingEmailCount,
+            'departments'                  => $departments,
+            'sectors'                      => $sectors,
+            'subSectors'                   => $subSectors,
+            'availableYears'               => $availableYears,
+            'notSubmittedUsers'            => $notSubmittedUsers,
+            'totalActiveUsersCount'        => $totalActiveUsersCount,
+            'totalSubmittedCount'          => $totalSubmittedCount,
+            'totalNotSubmitted'            => $totalNotSubmitted,
+            'currentPage'                  => $notSubmittedUsers->currentPage(),
+            'totalPages'                   => $notSubmittedUsers->lastPage(),
+            'totalRecords'                 => $notSubmittedUsers->total(),
+            'noRecords'                    => $notSubmittedUsers->isEmpty(),
+            'currentPeriodLabel'           => $this->getPeriodLabel(),
+            'selectedUserIds'              => $this->selectedUserIds,
+            'selectedYear'                 => $this->selectedYear,
+            'selectedSemester'             => $this->selectedSemester,
+            'selectedSector'               => $this->selectedSector,
+            'selectedSubSector'            => $this->selectedSubSector,
+            'selectedDepartment'           => $this->selectedDepartment,
+            'search'                       => $this->search,
+            'errorMessage'                 => $this->errorMessage,
+            'selectAll'                    => $this->selectAll,
+            'showEmailModal'               => $this->showEmailModal,
+            'emailMode'                    => $this->emailMode,
+            'emailSubject'                 => $this->emailSubject,
+            'emailCustomMessage'           => $this->emailCustomMessage,
+            'singleUserId'                 => $this->singleUserId,
+            'singleUserName'               => $this->singleUserName,
+            'singleUserEmail'              => $this->singleUserEmail,
+            'singleUserDepartment'         => $this->singleUserDepartment,
+            'singleUserUnsubmittedSectors' => $this->singleUserUnsubmittedSectors,
+            'modalRecipientsCount'         => $this->modalRecipientsCount,
+            'modalValidEmailCount'         => $this->modalValidEmailCount,
+            'modalMissingEmailCount'       => $this->modalMissingEmailCount,
         ]);
     }
 }

@@ -18,6 +18,7 @@ class SubmissionReminderMail extends Mailable
     public string $emailSubject;
     public ?string $customMessage;
     public string $actionUrl;
+    public array $unsubmittedSectors;
 
     /**
      * Create a new message instance.
@@ -27,13 +28,15 @@ class SubmissionReminderMail extends Mailable
         string $periodLabel,
         string $emailSubject = 'Reminder: Pending GAD Document Submission',
         ?string $customMessage = null,
-        ?string $actionUrl = null
+        ?string $actionUrl = null,
+        array $unsubmittedSectors = []
     ) {
         $this->user = $user;
         $this->periodLabel = $periodLabel;
         $this->emailSubject = $emailSubject;
         $this->customMessage = $customMessage;
         $this->actionUrl = $actionUrl ?? url('/document-archive');
+        $this->unsubmittedSectors = $unsubmittedSectors;
     }
 
     /**

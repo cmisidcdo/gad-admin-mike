@@ -56,16 +56,19 @@
         <div class="pagination-info pb-2">
             Page {{ $currentPage }} out of {{ $totalPages }}, Total Records: {{ $totalRecords }}
         </div>
-        <div class="table-responsive" wire:loading.class="opacity-50" wire:target="edit, search">
-            <table class="table table-bordered table-hover">
-                <thead class="custom-thead-document-archive">
+        <div class="table-responsive" wire:loading.class="opacity-50" wire:target="edit, search, confirmResetPassword, resetPassword">
+            <table class="table table-bordered table-hover align-middle">
+                <thead class="custom-thead-document-archive text-center">
                     <tr>
-                        <th scope="col"></th>
+                        <th scope="col" style="width: 70px;"></th>
                         <th scope="col">User ID</th>
                         <th scope="col">Name</th>
                         <th scope="col">Office / Department</th>
                         <th scope="col">Email Address</th>
                         <th scope="col">Status</th>
+                        @if($permissions->update == '1')
+                        <th scope="col" style="width: 160px;">Action</th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody>
@@ -83,8 +86,21 @@
                         </td>
                         <td>{{ $item['email'] ?? 'N/A' }}</td>
                         <td>
-                            {{ $item['is_active'] === 'Y' ? 'Active' : 'Inactive' }}
+                            <span class="badge {{ $item['is_active'] === 'Y' ? 'bg-success-subtle text-success border border-success' : 'bg-secondary-subtle text-secondary border' }}">
+                                {{ $item['is_active'] === 'Y' ? 'Active' : 'Inactive' }}
+                            </span>
                         </td>
+                        @if($permissions->update == '1')
+                        <td>
+                            <button class="btn btn-outline-warning text-dark btn-sm d-inline-flex align-items-center gap-1 shadow-sm"
+                                    wire:click="confirmResetPassword({{ $item->id }})"
+                                    wire:loading.attr="disabled"
+                                    wire:target="confirmResetPassword({{ $item->id }})"
+                                    title="Reset Password to default ('password')">
+                                <i class="ri-lock-password-line"></i> Reset Password
+                            </button>
+                        </td>
+                        @endif
                     </tr>
                     @endforeach
                 </tbody>
@@ -107,6 +123,13 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" wire:click="closeaddModal"></button>
                 </div>
                 <div class="modal-body">
+                    @if(session('status'))
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <i class="bi bi-check-circle me-1"></i>
+                        {{ session('status') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    @endif
                     @if(session('userPermissionStatus'))
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
                         <i class="bi bi-check-circle me-1"></i>
@@ -168,6 +191,13 @@
                         </div>
                         <div class="input-group mb-3">
                             <button class="btn btn-outline-primary" type="button" style="width: 100%;" wire:click="sectorAccessModal({{ $Postid }})" wire:loading.class="opacity-50" wire:target="sectorAccessModal"><i class="ri-building-line me-2"></i>Edit Sector Access</button>
+                        </div>
+                        <div class="input-group mb-3">
+                            <button class="btn btn-outline-warning text-dark" type="button" style="width: 100%;"
+                                    wire:click="confirmResetPassword({{ $Postid }})"
+                                    wire:loading.class="opacity-50" wire:target="confirmResetPassword({{ $Postid }})">
+                                <i class="ri-lock-password-line me-2"></i>Reset Password
+                            </button>
                         </div>
                         @endif
                         @endif
@@ -356,5 +386,42 @@
     </div>
     @endif
     <!-- END SECTOR ACCESS PERMISSION MODAL -->
+
+    {{-- ═══════════════════════════════════════════════════ --}}
+    {{-- RESET PASSWORD CONFIRMATION MODAL (no JS dialog)   --}}
+    {{-- ═══════════════════════════════════════════════════ --}}
+    @if($resetPasswordConfirmId)
+    @php $resetUser = App\Models\User::find($resetPasswordConfirmId); @endphp
+    <div class="modal fade show" tabindex="-1" style="display: block; background-color: rgba(1, 76, 143, 0.2);" aria-modal="true" role="dialog">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title text-warning">
+                        <i class="ri-lock-password-line me-1"></i> Reset Password
+                    </h5>
+                    <button type="button" class="btn-close" wire:click="cancelResetPassword" aria-label="Close"></button>
+                </div>
+                <div class="modal-body pt-2">
+                    <p class="mb-1">Are you sure you want to reset the password for:</p>
+                    <p class="fw-bold mb-0">{{ $resetUser?->name ?? 'this user' }} <span class="text-muted fw-normal">({{ $resetUser?->user_id }})</span></p>
+                    <p class="text-muted small mt-1 mb-0">Their password will be changed to <code>password</code>. They will need to change it after logging in.</p>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary btn-sm" wire:click="cancelResetPassword"
+                            wire:loading.attr="disabled">
+                        Cancel
+                    </button>
+                    <button type="button" class="btn btn-warning text-dark btn-sm" wire:click="resetPassword"
+                            wire:loading.attr="disabled" wire:target="resetPassword">
+                        <span wire:loading wire:target="resetPassword" class="spinner-border spinner-border-sm me-1" role="status"></span>
+                        <i class="ri-lock-password-line me-1" wire:loading.remove wire:target="resetPassword"></i>
+                        Yes, Reset Password
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+    {{-- END RESET PASSWORD CONFIRMATION MODAL --}}
 
 </div>

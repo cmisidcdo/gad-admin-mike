@@ -201,6 +201,24 @@
                                 <span class="status-badge">NOT YET SUBMITTED</span>
                             </td>
                         </tr>
+                        @if(!empty($unsubmittedSectors) && count($unsubmittedSectors) > 0)
+                        <tr>
+                            <td class="label">Pending Sector / Subsector:</td>
+                            <td class="value">
+                                <ul style="margin: 4px 0 0 0; padding-left: 18px; color: #9b1c1c; font-size: 12.5px;">
+                                    @foreach($unsubmittedSectors as $sec)
+                                        <li style="margin-bottom: 3px;">
+                                            @if(!empty($sec['sub_sector_name']))
+                                                <strong>{{ $sec['sector_name'] }}:</strong> {{ $sec['sub_sector_name'] }}
+                                            @else
+                                                <strong>{{ $sec['sector_name'] }}</strong>
+                                            @endif
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </td>
+                        </tr>
+                        @endif
                     </table>
                 </div>
 

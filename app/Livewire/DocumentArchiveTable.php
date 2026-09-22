@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Storage;
 use Log;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Response;
+use Carbon\Carbon;
 
 class DocumentArchiveTable extends Component
 {
@@ -32,6 +33,10 @@ class DocumentArchiveTable extends Component
 
     public $alertPDFdelete = 0; // This is for the confirmation message if user wants to delete a PDF.
     public $fileToDeleteId;
+
+    // Document-level delete (Administrator only)
+    public $alertDocumentDelete = false;
+    public $documentToDeleteId;
 
     public $isEditFileModalOpen = false; // Modal for editing/updating an existing uploaded file
     public $editFileTransId;
@@ -67,6 +72,8 @@ class DocumentArchiveTable extends Component
     // Table Filter Properties (for Admin and general filtering)
     public $filterSector = '';
     public $filterSubSector = '';
+    public $filterYear = '';
+    public $filterSemester = '';
 
     public $listeners = ['deletePDF'];
 
@@ -88,10 +95,31 @@ class DocumentArchiveTable extends Component
         $this->resetPage();
     }
 
+    public function updatedFilterYear()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterSemester()
+    {
+        $this->resetPage();
+    }
+
+    public function mount()
+    {
+        // Pre-populate source from the authenticated user's office (department ID)
+        if (auth()->check() && !empty(auth()->user()->office)) {
+            $this->document_source = auth()->user()->office;
+        }
+    }
+
     // MODAL ------------------------------------------------
     public function add()
     {
-        $this->reset('selectedSector', 'selectedSubSector', 'selectedDocumentType', 'document_desc', 'document_source', 'document_desc2', 'Posttransid', 'currentApprovalStatus', 'currentDeclineReason', 'isUploadFieldOpen', 'isEditFileModalOpen', 'alertPDFdelete');
+        $this->reset('selectedSector', 'selectedSubSector', 'selectedDocumentType', 'document_desc', 'document_desc2', 'Posttransid', 'currentApprovalStatus', 'currentDeclineReason', 'isUploadFieldOpen', 'isEditFileModalOpen', 'alertPDFdelete');
+
+        // Auto-populate Source from the authenticated user's office — always
+        $this->document_source = auth()->user()->office ?? '';
 
         // Auto-populate from active table filter if already selected
         if (!empty($this->filterSector)) {
@@ -538,6 +566,66 @@ class DocumentArchiveTable extends Component
     }
     // END SOFT DELETE
 
+    // ─────────────────────────────────────────────────────────
+    // DELETE ENTIRE DOCUMENT (Administrator only)
+    // ─────────────────────────────────────────────────────────
+
+    /**
+     * Open the confirmation modal for deleting an entire document archive entry.
+     * Only Administrators can trigger this.
+     */
+    public function openDeleteDocumentConfirm(string $transId): void
+    {
+        if (!$this->isAdministrator()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $this->documentToDeleteId = $transId;
+        $this->alertDocumentDelete = true;
+    }
+
+    /**
+     * Close the document delete confirmation modal without taking action.
+     */
+    public function closeDeleteDocumentConfirm(): void
+    {
+        $this->alertDocumentDelete = false;
+        $this->documentToDeleteId = null;
+    }
+
+    /**
+     * Soft-delete the document archive entry and all its associated files.
+     * Administrator only.
+     */
+    public function deleteDocument(): void
+    {
+        if (!$this->isAdministrator()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        if (!$this->documentToDeleteId) {
+            return;
+        }
+
+        $document = TblDocumentInformation::where('trans_id', $this->documentToDeleteId)->first();
+
+        if (!$document) {
+            $this->closeDeleteDocumentConfirm();
+            return;
+        }
+
+        // Soft-delete all associated files
+        TblDocumentData::where('document_id', $this->documentToDeleteId)
+            ->update(['is_active' => 0]);
+
+        // Soft-delete the document record itself
+        $document->update(['is_active' => 0]);
+
+        $this->closeDeleteDocumentConfirm();
+        session()->flash('status', 'Document deleted successfully.');
+    }
+    // END DELETE ENTIRE DOCUMENT
+
     public function updating()
     {
         $this->resetPage();
@@ -667,6 +755,82 @@ class DocumentArchiveTable extends Component
         return TblRefSubSector::whereIn('sub_sector_id', $allowedSubSectorIds)->orderBy('sort_order')->get();
     }
 
+    /**
+     * Get available submission years dynamically from document database and surrounding years.
+     */
+    public function getAvailableYears(): array
+    {
+        $currentYear = (int) Carbon::now()->year;
+
+        $docYears = TblDocumentInformation::select('created_at', 'create_date')
+            ->get()
+            ->map(function ($doc) {
+                if ($doc->created_at) {
+                    return (int) $doc->created_at->format('Y');
+                }
+                if (!empty($doc->create_date)) {
+                    $parts = explode(' ', $doc->create_date);
+                    $dateParts = explode('/', $parts[0]);
+                    if (isset($dateParts[2]) && is_numeric($dateParts[2])) {
+                        return (int) $dateParts[2];
+                    }
+                }
+                return null;
+            })
+            ->filter()
+            ->unique()
+            ->toArray();
+
+        $defaultRange = range(max($currentYear, 2026), 2017);
+        $allYears = array_unique(array_merge($docYears, $defaultRange));
+        rsort($allYears);
+
+        return array_values($allYears);
+    }
+
+    /**
+     * Apply year and semester date filtering to a document query.
+     */
+    protected function applyDateRangeToQuery($query, string $dateColumn = 'tbl_document_information.created_at', ?string $legacyDateColumn = 'tbl_document_information.create_date')
+    {
+        if (!empty($this->filterYear)) {
+            $year = (int) $this->filterYear;
+            if ($this->filterSemester === '1') {
+                $from = Carbon::createFromDate($year, 1, 1)->startOfDay()->format('Y-m-d H:i:s');
+                $to   = Carbon::createFromDate($year, 6, 30)->endOfDay()->format('Y-m-d H:i:s');
+            } elseif ($this->filterSemester === '2') {
+                $from = Carbon::createFromDate($year, 7, 1)->startOfDay()->format('Y-m-d H:i:s');
+                $to   = Carbon::createFromDate($year, 12, 31)->endOfDay()->format('Y-m-d H:i:s');
+            } else {
+                $from = Carbon::createFromDate($year, 1, 1)->startOfDay()->format('Y-m-d H:i:s');
+                $to   = Carbon::createFromDate($year, 12, 31)->endOfDay()->format('Y-m-d H:i:s');
+            }
+
+            $query->where(function ($q) use ($from, $to, $dateColumn, $legacyDateColumn) {
+                $q->whereBetween($dateColumn, [$from, $to]);
+                if ($legacyDateColumn) {
+                    $q->orWhereRaw("STR_TO_DATE({$legacyDateColumn}, '%c/%e/%Y %r') BETWEEN ? AND ?", [$from, $to]);
+                }
+            });
+        } elseif (!empty($this->filterSemester)) {
+            if ($this->filterSemester === '1') {
+                $query->where(function ($q) use ($dateColumn, $legacyDateColumn) {
+                    $q->whereRaw("MONTH({$dateColumn}) BETWEEN 1 AND 6");
+                    if ($legacyDateColumn) {
+                        $q->orWhereRaw("MONTH(STR_TO_DATE({$legacyDateColumn}, '%c/%e/%Y %r')) BETWEEN 1 AND 6");
+                    }
+                });
+            } elseif ($this->filterSemester === '2') {
+                $query->where(function ($q) use ($dateColumn, $legacyDateColumn) {
+                    $q->whereRaw("MONTH({$dateColumn}) BETWEEN 7 AND 12");
+                    if ($legacyDateColumn) {
+                        $q->orWhereRaw("MONTH(STR_TO_DATE({$legacyDateColumn}, '%c/%e/%Y %r')) BETWEEN 7 AND 12");
+                    }
+                });
+            }
+        }
+    }
+
     public function render()
     {
         $sectorPermissions = $this->getUserSectorPermissions();
@@ -675,14 +839,28 @@ class DocumentArchiveTable extends Component
         // Build the base query with joins
         $query = TblDocumentInformation::search($this->search);
 
+        // Exclude soft-deleted documents
+        $query->where('tbl_document_information.is_active', '!=', '0');
+
+        // Apply date range filter (Year / Semester)
+        $this->applyDateRangeToQuery($query);
+
         if ($this->isAdministrator()) {
             // ADMIN: Enforce sector/subsector visibility
             if ($sectorPermissions->isEmpty()) {
                 // No chosen sector/subsector assigned -> No data upload (0 records shown)
                 $query->whereRaw('0 = 1');
             } elseif (empty($this->filterSector)) {
-                // No chosen sector in the filter -> No data upload shown until a sector is selected
-                $query->whereRaw('0 = 1');
+                // No sector chosen in filter → show all documents from all allowed sectors
+                $allowedSectorIds = $allowedSectors->pluck('sector_id')->toArray();
+                $query->whereIn('tbl_document_information.sector', $allowedSectorIds);
+
+                // Show approved docs from allowed sectors, plus the admin's own submissions
+                $query->where(function ($q) {
+                    $q->where('tbl_document_information.approval_status', 'approved')
+                      ->orWhere('tbl_document_information.create_user', Auth::user()->name)
+                      ->orWhere('tbl_document_information.create_user', Auth::user()->user_id);
+                });
             } else {
                 // Only selected sector / subsector ang makita
                 $query->where('tbl_document_information.sector', $this->filterSector);
@@ -744,14 +922,22 @@ class DocumentArchiveTable extends Component
 
         $departments = TblRefDepartment::orderBy('department_name')->get();
 
-        return view('livewire.document-archive-table', compact('subSectors', 'filterSubSectors', 'documentTypes', 'allowedSectors', 'departments'), [
+        // Resolve the current user's department name for the read-only Source field display
+        $userDeptId   = auth()->user()->office ?? null;
+        $userDeptName = $userDeptId
+            ? (TblRefDepartment::where('department_id', $userDeptId)->value('department_name') ?? 'Unknown Department')
+            : 'N/A';
+
+        $availableYears = $this->getAvailableYears();
+
+        return view('livewire.document-archive-table', compact('subSectors', 'filterSubSectors', 'documentTypes', 'allowedSectors', 'departments', 'userDeptName', 'availableYears'), [
             'data' => $data,
             'currentPage' => $data->currentPage(),
             'totalPages' => $data->lastPage(),
             'totalRecords' => $data->total(),
             'noRecords' => $data->isEmpty(),
             'hasNoSectorPermissions' => $sectorPermissions->isEmpty(),
-            'noFilterSectorSelected' => $this->isAdministrator() && empty($this->filterSector),
+            'noFilterSectorSelected' => false,
         ]);
     }
 }

@@ -129,7 +129,6 @@
                     <div class="input-group input-group-sm">
                         <span class="input-group-text fw-medium" style="background-color: #014C8F26;">Semester</span>
                         <select wire:model.live="selectedSemester" class="form-select form-select-sm">
-                            <option value="">All Semesters</option>
                             <option value="1">1st Semester (Jan - Jun)</option>
                             <option value="2">2nd Semester (Jul - Dec)</option>
                         </select>
@@ -255,6 +254,7 @@
                         <th scope="col" style="width: 130px;">User ID</th>
                         <th scope="col">Name</th>
                         <th scope="col">Office / Department</th>
+                        <th scope="col" style="min-width: 220px;">Not Submitted Sector/Subsector</th>
                         <th scope="col">Email Address</th>
                         <th scope="col" style="width: 120px;">Status</th>
                         <th scope="col" style="width: 110px;">Action</th>
@@ -284,6 +284,35 @@
                         </td>
                         <td class="text-start ps-3">
                             {{ $item->department->department_name ?? $item->office ?? 'N/A' }}
+                        </td>
+                        <td class="text-start ps-3">
+                            @if(!empty($item->unsubmitted_sectors) && count($item->unsubmitted_sectors) > 0)
+                                <div class="d-flex flex-column gap-1">
+                                    @foreach($item->unsubmitted_sectors as $unsub)
+                                        @if(!empty($unsub['is_unassigned']))
+                                            <span class="badge bg-light text-muted border align-self-start">
+                                                <i class="bi bi-dash-circle me-1"></i>No assigned sectors
+                                            </span>
+                                        @else
+                                            <div>
+                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle text-wrap text-start py-1 px-2 d-inline-flex align-items-start" style="font-size: 11.5px; line-height: 1.35; max-width: 320px;">
+                                                    <i class="bi bi-x-circle-fill flex-shrink-0 me-1 mt-0.5" style="font-size: 11px;"></i>
+                                                    <span>
+                                                        <strong>{{ $unsub['sector_name'] }}</strong>
+                                                        @if(!empty($unsub['sub_sector_name']))
+                                                            &mdash; {{ $unsub['sub_sector_name'] }}
+                                                        @endif
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        @endif
+                                    @endforeach
+                                </div>
+                            @else
+                                <span class="badge bg-light text-muted border">
+                                    <i class="bi bi-dash-circle me-1"></i>No assigned sectors
+                                </span>
+                            @endif
                         </td>
                         <td class="text-start ps-3">
                             @if(!empty($item->email))
@@ -384,6 +413,29 @@
                             @endif
                         </div>
                     </div>
+
+                    @if($emailMode === 'single' && !empty($singleUserUnsubmittedSectors) && count($singleUserUnsubmittedSectors) > 0)
+                    <div class="mb-3 p-2 px-3 rounded border" style="background-color: #fef2f2; border-color: #fecaca !important;">
+                        <span class="fw-bold small text-danger d-block mb-1">
+                            <i class="bi bi-exclamation-triangle-fill me-1"></i>Pending Sector / Subsector Requirement(s):
+                        </span>
+                        <div class="d-flex flex-wrap gap-1">
+                            @foreach($singleUserUnsubmittedSectors as $unsub)
+                                @if(!empty($unsub['is_unassigned']))
+                                    <span class="badge bg-light text-muted border">No assigned sectors</span>
+                                @else
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle py-1 px-2">
+                                        <i class="bi bi-x-circle me-1"></i>
+                                        <strong>{{ $unsub['sector_name'] }}</strong>
+                                        @if(!empty($unsub['sub_sector_name']))
+                                            &mdash; {{ $unsub['sub_sector_name'] }}
+                                        @endif
+                                    </span>
+                                @endif
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
 
                     @if($modalValidEmailCount === 0)
                     <div class="alert alert-danger py-2 small mb-3">

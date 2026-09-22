@@ -9,6 +9,7 @@ use App\Models\TblRefSubSector;
 use App\Models\TblUserAccessPermission;
 use App\Models\TblUserSectorPermission;
 use App\Models\User;
+use App\Services\UserPermissionService;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -38,6 +39,9 @@ class UserAdministration extends Component
 
     // MODALS, PERMISSION MODAL
     public $addUser = 0, $userPermissionModal = 0;
+
+    // RESET PASSWORD CONFIRM MODAL
+    public $resetPasswordConfirmId = null;
 
     // MODALS
     public function addModal()
@@ -244,64 +248,13 @@ class UserAdministration extends Component
     }
 
     /**
-     * Automatically assign default module permissions when a user is created.
-     * For role USER:
-     *   - Archive: Create = 1, Read = 1, Update = 1, Delete = 0
-     *   - All other modules: Create = 0, Read = 0, Update = 0, Delete = 0
-     * For role ADMINISTRATOR:
-     *   - All modules: Create = 1, Read = 1, Update = 1, Delete = 1
+     * Assign default module permissions — delegates to UserPermissionService.
+     * User role: Archive CRU; all others: none.
+     * Admin role: full access to all modules.
      */
     public function assignDefaultPermissions($user)
     {
-        $role = \App\Models\TblUserRole::where('user_role_id', $user->user_role_id)->first();
-        $roleName = $role ? strtolower(trim($role->user_role_name)) : '';
-
-        $menus = TblCmsMenu::all();
-
-        foreach ($menus as $menu) {
-            $menuName = strtolower(trim($menu->menu_name));
-
-            if ($roleName === 'user' || $user->user_role_id == 4) {
-                // USER Role:
-                // Archive: Create = 1, Read = 1, Update = 1, Delete = 0
-                // Reference, User Administration, Recycle Bin, Document Approval: all 0
-                $isArchive = ($menu->id == 3 || $menuName === 'archive');
-
-                TblUserAccessPermission::updateOrCreate(
-                    ['id_user' => $user->id, 'id_cms_menu' => $menu->id],
-                    [
-                        'create' => $isArchive ? 1 : 0,
-                        'read'   => $isArchive ? 1 : 0,
-                        'update' => $isArchive ? 1 : 0,
-                        'delete' => 0,
-                    ]
-                );
-            } elseif ($roleName === 'administrator' || $roleName === 'admin' || $user->user_role_id == 1) {
-                // ADMINISTRATOR Role:
-                // Full access across all modules
-                TblUserAccessPermission::updateOrCreate(
-                    ['id_user' => $user->id, 'id_cms_menu' => $menu->id],
-                    [
-                        'create' => 1,
-                        'read'   => 1,
-                        'update' => 1,
-                        'delete' => 1,
-                    ]
-                );
-            } else {
-                // Default fallback for any other role
-                $isArchive = ($menu->id == 3 || $menuName === 'archive');
-                TblUserAccessPermission::updateOrCreate(
-                    ['id_user' => $user->id, 'id_cms_menu' => $menu->id],
-                    [
-                        'create' => $isArchive ? 1 : 0,
-                        'read'   => $isArchive ? 1 : 0,
-                        'update' => $isArchive ? 1 : 0,
-                        'delete' => 0,
-                    ]
-                );
-            }
-        }
+        UserPermissionService::assignDefault($user);
     }
 
     // EDIT MODAL
@@ -382,6 +335,36 @@ class UserAdministration extends Component
         $this->reset('selectedPermissions');
     }
 
+    /**
+     * Open the Reset Password confirmation modal (no JS confirm dialog).
+     */
+    public function confirmResetPassword($id)
+    {
+        $this->resetPasswordConfirmId = $id;
+    }
+
+    /**
+     * Cancel / dismiss the Reset Password confirmation modal.
+     */
+    public function cancelResetPassword()
+    {
+        $this->resetPasswordConfirmId = null;
+    }
+
+    /**
+     * Reset the user's password to the default ("password").
+     */
+    public function resetPassword()
+    {
+        $user = User::findOrFail($this->resetPasswordConfirmId);
+        $user->update([
+            'password' => Hash::make('password'),
+        ]);
+
+        $this->resetPasswordConfirmId = null;
+        session()->flash('status', "Password for {$user->name} ({$user->user_id}) has been reset to default (\"password\").");
+    }
+
 
 
     public function render()
@@ -392,8 +375,11 @@ class UserAdministration extends Component
         // Fetch all departments sorted by department_name for the Office dropdown.
         $departments = TblRefDepartment::orderBy('department_name', 'asc')->get();
 
-        // Instantiate a User model and then call the search method
-        $data = (new User())->search(User::query(), $this->search)->paginate(10);
+        // Instantiate a User model and then call the search method, ordered by latest user added
+        $data = (new User())->search(User::query(), $this->search)
+            ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
+            ->paginate(10);
 
         return view('livewire.user-administration', [
             'departments'   => $departments,

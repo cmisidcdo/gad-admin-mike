@@ -7,6 +7,7 @@ use App\Providers\RouteServiceProvider;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Session;
 use App\Models\User;
 
 
@@ -42,6 +43,17 @@ class LoginController extends Controller
     public function __construct()
     {
         $this->middleware('guest')->except('logout');
+    }
+
+    /**
+     * Show the login form, pre-generating a fresh math captcha question.
+     */
+    public function showLoginForm()
+    {
+        [$question, $answer] = SignupController::generateCaptcha();
+        Session::put('signup_captcha_answer', $answer);
+
+        return view('auth.login', ['captchaQuestion' => $question]);
     }
 
     //Custom login. Instead of using the email for auth, we used user_id. When adding custom, make sure the login.blade is configured as well.

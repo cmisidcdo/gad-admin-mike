@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ChangePasswordController;
 use App\Http\Controllers\RecycleBin as ControllersRecycleBin;
+use App\Http\Controllers\Auth\SignupController;
 use App\Livewire\ChangePassword;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth; //This is for the `Auth::routes();`
@@ -27,8 +28,13 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
-// Disable registration
+// Auth routes (registration disabled — we use our own signup controller)
 Auth::routes(['register' => false]);
+
+// Signup (self-registration with captcha — accounts pending admin activation)
+Route::get('/signup', [SignupController::class, 'showForm'])->name('signup')->middleware('guest');
+Route::post('/signup', [SignupController::class, 'store'])->name('signup.store')->middleware('guest');
+Route::get('/captcha/refresh', [SignupController::class, 'refreshCaptcha'])->name('captcha.refresh');
 
 
 Route::group(['middleware' => 'auth'], function () {
