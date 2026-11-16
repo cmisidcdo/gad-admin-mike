@@ -106,6 +106,22 @@
             </li>
             <!-- End Dashboard Nav -->
 
+            <li class="nav-item">
+                <a class="nav-link {{ request()->is('plan-budget*') ? '' : 'collapsed' }}" href="{{ url('/plan-budget') }}">
+                    <i class="bi bi-folder"></i>
+                    <span>Plan and Budget</span>
+                </a>
+            </li>
+            <!-- End Plan and Budget Nav -->
+
+            <li class="nav-item">
+                <a class="nav-link {{ request()->is('accomplishment*') ? '' : 'collapsed' }}" href="{{ url('/accomplishment') }}">
+                    <i class="bi bi-bag"></i>
+                    <span>Accomplishment</span>
+                </a>
+            </li>
+            <!-- End Accomplishment Nav -->
+
             @php
             $userID = Auth::user()->id;
             $menu = App\Models\TblCmsMenu::all();

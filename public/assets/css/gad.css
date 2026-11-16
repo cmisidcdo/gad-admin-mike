@@ -1,0 +1,691 @@
+/* GAD System - Premium Presentable Styling for Plan and Budget & Accomplishment */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+    --gad-navy: #0f2d59;
+    --gad-navy-dark: #091a35;
+    --gad-primary: #3b66f5;
+    --gad-primary-hover: #2a52de;
+    --gad-primary-light: #eff4fe;
+    --gad-bg: #f8fafc;
+    --gad-surface: #ffffff;
+    --gad-border: #e2e8f0;
+    --gad-border-subtle: #edf2f7;
+    --gad-text-main: #1e293b;
+    --gad-text-muted: #64748b;
+    --gad-text-light: #94a3b8;
+    
+    /* Themes */
+    --gad-header-gpb: linear-gradient(135deg, #d8e8f8 0%, #c1daf4 100%);
+    --gad-header-ar: linear-gradient(135deg, #fae2f0 0%, #f4cde6 100%);
+    --gad-accent-table-head: #24527a;
+    --gad-accent-cream: #fffdf2;
+    --gad-cream-border: #fef3c7;
+    
+    /* Shadows */
+    --gad-shadow-sm: 0 1px 3px rgba(15, 45, 89, 0.05);
+    --gad-shadow-md: 0 4px 16px -2px rgba(15, 45, 89, 0.08), 0 2px 6px -1px rgba(15, 45, 89, 0.04);
+    --gad-shadow-lg: 0 12px 28px -4px rgba(15, 45, 89, 0.12), 0 4px 10px -2px rgba(15, 45, 89, 0.04);
+    --gad-shadow-modal: 0 20px 40px -8px rgba(15, 23, 42, 0.25);
+}
+
+body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    background-color: var(--gad-bg);
+    color: var(--gad-text-main);
+    font-size: 13px;
+    letter-spacing: -0.01em;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ---------------- Top Navigation Header ---------------- */
+.gad-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: var(--gad-header-gpb);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px;
+    z-index: 100;
+    border-bottom: 1px solid rgba(15, 45, 89, 0.08);
+    backdrop-filter: blur(8px);
+}
+.gad-header.pink {
+    background: var(--gad-header-ar);
+    border-bottom: 1px solid rgba(180, 80, 140, 0.12);
+}
+
+.gad-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: var(--gad-navy);
+    font-size: 19px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+.gad-logo img {
+    height: 38px;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.06));
+}
+
+.gad-toggle {
+    font-size: 22px;
+    cursor: pointer;
+    color: var(--gad-navy);
+    padding: 6px;
+    border-radius: 6px;
+    transition: background-color 0.2s, transform 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.gad-toggle:hover {
+    background: rgba(15, 45, 89, 0.08);
+    transform: scale(1.05);
+}
+
+.gad-user {
+    color: var(--gad-navy);
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 13.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.6);
+    padding: 6px 14px;
+    border-radius: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 2px 6px rgba(15, 45, 89, 0.04);
+    transition: all 0.2s;
+}
+.gad-user:hover {
+    background: #ffffff;
+    box-shadow: 0 4px 10px rgba(15, 45, 89, 0.08);
+}
+.gad-user i {
+    font-size: 20px;
+    color: var(--gad-navy);
+}
+
+/* ---------------- Sidebar Navigation ---------------- */
+.gad-sidebar {
+    position: fixed;
+    top: 64px;
+    bottom: 0;
+    left: 0;
+    width: 210px;
+    background: var(--gad-surface);
+    border-right: 1px solid var(--gad-border);
+    padding: 20px 12px;
+    z-index: 90;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--gad-shadow-sm);
+}
+.gad-sidebar a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    margin-bottom: 6px;
+    color: var(--gad-text-muted);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 13px;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+.gad-sidebar a i {
+    font-size: 17px;
+    color: var(--gad-text-light);
+    transition: color 0.2s;
+}
+.gad-sidebar a:hover {
+    color: var(--gad-primary);
+    background: var(--gad-primary-light);
+}
+.gad-sidebar a:hover i {
+    color: var(--gad-primary);
+}
+.gad-sidebar a.active {
+    background: var(--gad-primary-light);
+    color: var(--gad-primary);
+    font-weight: 700;
+}
+.gad-sidebar a.active i {
+    color: var(--gad-primary);
+}
+
+.gad-main {
+    margin: 64px 0 0 210px;
+    padding: 26px 32px;
+    min-height: calc(100vh - 64px);
+    transition: margin 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Sidebar Mini state */
+body.gad-mini .gad-sidebar {
+    width: 64px;
+    padding: 20px 8px;
+}
+body.gad-mini .gad-sidebar a {
+    justify-content: center;
+    padding: 10px 0;
+}
+body.gad-mini .gad-sidebar a span {
+    display: none;
+}
+body.gad-mini .gad-main {
+    margin-left: 64px;
+}
+
+/* ---------------- Card Container ---------------- */
+.gad-card {
+    background: var(--gad-surface);
+    border-radius: 14px;
+    border: 1px solid var(--gad-border);
+    box-shadow: var(--gad-shadow-md);
+    padding: 26px 30px;
+    position: relative;
+}
+
+.gad-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--gad-navy);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.gad-title.plain {
+    text-transform: none;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+}
+
+/* ---------------- Filter & Form Controls ---------------- */
+.gad-label {
+    background: #f1f5f9;
+    color: var(--gad-navy);
+    font-weight: 700;
+    padding: 6px 12px;
+    font-size: 11.5px;
+    border-radius: 6px 0 0 6px;
+    border: 1px solid var(--gad-border);
+    border-right: none;
+    display: inline-flex;
+    align-items: center;
+}
+
+.gad-select, .gad-input {
+    border: 1px solid var(--gad-border);
+    background: #ffffff;
+    font-size: 12.5px;
+    padding: 6px 10px;
+    color: var(--gad-text-main);
+    border-radius: 6px;
+    transition: all 0.15s ease;
+    font-family: inherit;
+}
+.gad-select:focus, .gad-input:focus, textarea.gad-input:focus {
+    border-color: var(--gad-primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 102, 245, 0.15);
+}
+.input-group > .gad-select, .input-group > .gad-input {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+/* ---------------- Custom Buttons ---------------- */
+.btn-gad-add {
+    background: linear-gradient(135deg, #3b66f5 0%, #2951dc 100%);
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 12.5px;
+    padding: 8px 18px;
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 3px 10px rgba(59, 102, 245, 0.3);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+.btn-gad-add:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 14px rgba(59, 102, 245, 0.4);
+    color: #fff;
+}
+.btn-gad-add:active {
+    transform: translateY(0);
+}
+
+.btn-gad-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #ffffff;
+    color: var(--gad-navy);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--gad-border);
+    box-shadow: var(--gad-shadow-sm);
+    text-decoration: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+.btn-gad-back:hover {
+    background: #f1f5f9;
+    color: var(--gad-primary);
+    border-color: #cbd5e1;
+    transform: translateX(-2px);
+    box-shadow: 0 2px 8px rgba(15, 45, 89, 0.08);
+}
+.btn-gad-back i {
+    font-size: 13px;
+    transition: transform 0.2s;
+}
+.btn-gad-back:hover i {
+    transform: translateX(-2px);
+}
+
+.btn-xs {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 5px;
+    font-weight: 600;
+    border: none;
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    transition: all 0.15s ease;
+    cursor: pointer;
+    text-decoration: none;
+}
+.btn-xs:hover {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+    color: #fff;
+}
+.btn-xs:active {
+    transform: translateY(0);
+}
+
+.btn-xs.view { background: #2b5c8f; }
+.btn-xs.track { background: #f1f5f9; color: #1e3a5f; border: 1px solid #cbd5e1; }
+.btn-xs.track:hover { background: #e2e8f0; color: #0f2d59; }
+.btn-xs.delete { background: #ef4444; }
+.btn-xs.details { background: #eab308; }
+.btn-xs.update { background: #10b981; }
+.btn-xs.attach { background: #0ea5e9; }
+.btn-xs.clear { background: #ef4444; }
+.btn-xs.save { background: #3b66f5; }
+.btn-xs.lg { font-size: 12.5px; padding: 7px 16px; border-radius: 6px; }
+
+/* ---------------- Modern Tables ---------------- */
+.gad-table-wrapper {
+    overflow-x: auto;
+    border-radius: 10px;
+    border: 1px solid var(--gad-border);
+    box-shadow: var(--gad-shadow-sm);
+    background: #ffffff;
+}
+
+.gad-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: #ffffff;
+}
+.gad-table thead th {
+    background: var(--gad-accent-table-head);
+    color: #ffffff;
+    text-align: center;
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 11px 12px;
+    border-right: 1px solid rgba(255, 255, 255, 0.12);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    letter-spacing: 0.02em;
+    vertical-align: middle;
+}
+.gad-table thead th:last-child {
+    border-right: none;
+}
+.gad-table td {
+    border-bottom: 1px solid var(--gad-border-subtle);
+    border-right: 1px solid var(--gad-border-subtle);
+    padding: 12px 14px;
+    vertical-align: top;
+    font-size: 12px;
+    line-height: 1.5;
+}
+.gad-table td:last-child {
+    border-right: none;
+}
+.gad-table tbody tr:hover td {
+    background-color: #fcfdfe;
+}
+.gad-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.gad-table td.cream {
+    background-color: var(--gad-accent-cream);
+    color: #1e293b;
+}
+
+/* Yellow chat indicator icon matching Figma */
+.btn-field-remark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    padding: 2px 4px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+    line-height: 1;
+}
+.btn-field-remark i {
+    font-size: 14px;
+}
+.btn-field-remark.has-remark {
+    color: #eab308; /* Yellow icon matching Figma */
+    filter: drop-shadow(0 1px 2px rgba(234, 179, 8, 0.4));
+}
+.btn-field-remark.no-remark {
+    color: #cbd5e1;
+}
+.btn-field-remark:hover {
+    transform: scale(1.15);
+    background: rgba(234, 179, 8, 0.15);
+}
+.field-remark-preview {
+    font-size: 10px;
+    background: #fffbeb;
+    color: #92400e;
+    border: 1px solid #fef3c7;
+    border-radius: 4px;
+    padding: 3px 6px;
+    margin-top: 4px;
+    display: block;
+    line-height: 1.3;
+}
+
+.gad-table tr.empty-row td {
+    height: 36px;
+    background-color: #fafbfc;
+}
+
+.budget-red {
+    color: #dc2626;
+    font-weight: 700;
+}
+
+.status-pill {
+    background: #f1f5f9;
+    color: var(--gad-navy);
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid #e2e8f0;
+}
+.status-pill.endorsed {
+    background: #e0f2fe;
+    color: #0369a1;
+    border-color: #bae6fd;
+}
+.status-remarks {
+    font-size: 11px;
+    color: var(--gad-text-muted);
+    background: #f8fafc;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border-left: 3px solid #cbd5e1;
+    margin-top: 4px;
+}
+
+.attach-chip {
+    background: #f1f5f9;
+    color: var(--gad-navy);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 6px 12px;
+    display: inline-block;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    transition: all 0.15s ease;
+    cursor: pointer;
+}
+.attach-chip:hover {
+    background: #e2e8f0;
+    color: var(--gad-navy);
+}
+
+.badge-status {
+    background: #eab308;
+    color: #ffffff;
+    font-weight: 800;
+    padding: 5px 16px;
+    border-radius: 30px;
+    font-size: 11.5px;
+    letter-spacing: 0.04em;
+    display: inline-block;
+    box-shadow: 0 2px 6px rgba(234, 179, 8, 0.25);
+}
+.badge-status.returned {
+    background: #ef4444;
+    box-shadow: 0 2px 6px rgba(239, 68, 68, 0.25);
+}
+.badge-status.submitted {
+    background: #3b66f5;
+    box-shadow: 0 2px 6px rgba(59, 102, 245, 0.25);
+}
+.badge-status.endorsed {
+    background: #0284c7;
+    box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
+}
+
+/* ---------------- Collapsible Form Panels ---------------- */
+.form-bar {
+    background: #24527a;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 10px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    border: none;
+    width: 100%;
+    border-radius: 8px 8px 0 0;
+    transition: background 0.2s;
+}
+.form-bar.attributed {
+    background: #476a8d;
+}
+.form-bar.open {
+    background: #193a57;
+}
+.form-bar.org.open {
+    background: #1e4569;
+}
+
+.form-panel {
+    background: #f8fafc;
+    border: 1px solid var(--gad-border);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+    box-shadow: var(--gad-shadow-sm);
+}
+.form-panel.scrollable-form {
+    overflow-x: auto;
+    padding-bottom: 12px;
+}
+.form-grid label {
+    font-weight: 700;
+    font-size: 11px;
+    color: var(--gad-navy);
+    margin-bottom: 4px;
+    display: block;
+    line-height: 1.25;
+    min-height: 28px;
+}
+.form-grid .req {
+    color: #ef4444;
+}
+.form-grid textarea {
+    min-height: 70px;
+    resize: vertical;
+}
+
+/* 13-column flex/grid layout matching Figma Desktop-4 */
+.figma-gpb-form-row {
+    display: flex;
+    gap: 8px;
+    min-width: 1450px;
+    align-items: flex-start;
+}
+.figma-gpb-col {
+    display: flex;
+    flex-direction: column;
+}
+.figma-gpb-col .gad-input,
+.figma-gpb-col .gad-select,
+.figma-gpb-col textarea {
+    width: 100%;
+}
+
+/* Accomplishment Report form row */
+.figma-ar-form-row {
+    display: flex;
+    gap: 8px;
+    min-width: 1350px;
+    align-items: flex-start;
+}
+.figma-ar-col {
+    display: flex;
+    flex-direction: column;
+}
+.figma-ar-col .gad-input,
+.figma-ar-col .gad-select,
+.figma-ar-col textarea {
+    width: 100%;
+}
+
+/* ---------------- Modals ---------------- */
+.gad-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 60px 16px;
+    overflow-y: auto;
+    animation: fadeIn 0.2s ease-out;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.gad-modal {
+    background: #ffffff;
+    width: 440px;
+    max-width: 96vw;
+    border-radius: 12px;
+    box-shadow: var(--gad-shadow-modal);
+    overflow: hidden;
+    margin-bottom: 40px;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+.gad-modal.wide {
+    width: 820px;
+}
+.gad-modal-head {
+    background: linear-gradient(135deg, #1e4569 0%, #153450 100%);
+    color: #ffffff;
+    text-align: center;
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 0.03em;
+    padding: 14px 16px;
+    position: relative;
+}
+.gad-modal-head .x {
+    position: absolute;
+    right: 14px;
+    top: 10px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: #ffffff;
+    font-size: 20px;
+    line-height: 1;
+    opacity: 0.8;
+    transition: opacity 0.15s;
+}
+.gad-modal-head .x:hover {
+    opacity: 1;
+}
+.gad-modal-body {
+    padding: 24px;
+}
+.error-text {
+    color: #dc2626;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+/* ---------------- Pagination ---------------- */
+.pagination {
+    gap: 4px;
+    margin: 0;
+}
+.pagination .page-item .page-link {
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 12px;
+    color: var(--gad-navy);
+    border: 1px solid var(--gad-border);
+    transition: all 0.15s ease;
+}
+.pagination .page-item .page-link:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+}
+.pagination .page-item.active .page-link {
+    background: var(--gad-accent-table-head);
+    border-color: var(--gad-accent-table-head);
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(36, 82, 122, 0.3);
+}

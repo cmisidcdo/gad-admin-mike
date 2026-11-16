@@ -58,11 +58,19 @@ Route::group(['middleware' => 'auth'], function () {
 
     // Recycle Bin
     Route::get('/recycle-bin', [RecycleBinController::class, 'index'])->name('change-password');
+
+    // GAD Plan and Budget
+    Route::get('/plan-budget', fn () => view('plan-budget.index'))->name('plan-budget');
+    Route::get('/plan-budget/{plan}', fn (\App\Models\GadPlan $plan) => view('plan-budget.show', compact('plan')))->name('plan-budget.show');
+
+    // GAD Accomplishment Report
+    Route::get('/accomplishment', fn () => view('accomplishment.index'))->name('accomplishment');
+    Route::get('/accomplishment/{report}', fn (\App\Models\GadAccomplishment $report) => view('accomplishment.show', compact('report')))->name('accomplishment.show');
 });
 
 Livewire::setScriptRoute(function ($handle) {
-    return Route::get('/gad-admin/livewire/livewire.js', $handle);
+    return Route::get('/gad-admin-beta/livewire/livewire.js', $handle);
 });
 Livewire::setUpdateRoute(function ($handle) {
-    return Route::post('/gad-admin/livewire/update', $handle);
+    return Route::post('/gad-admin-beta/livewire/update', $handle);
 });
