@@ -13,7 +13,11 @@
     <div class="gad-card">
         <div class="d-flex justify-content-between align-items-start mb-2">
             <div>
-                <a href="{{ route('plan-budget') }}" class="btn-gad-back mb-2"><i class="bi bi-arrow-left"></i> Back</a>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <a href="{{ route('plan-budget') }}" class="btn-gad-back"><i class="bi bi-arrow-left"></i> Back</a>
+                    <a href="{{ route('plan-budget.print', $plan->id) }}" target="_blank" class="btn-gad-print"><i class="bi bi-printer-fill"></i> Printable Report</a>
+                    <a href="{{ route('plan-budget.excel', $plan->id) }}" class="btn-gad-excel"><i class="bi bi-file-earmark-spreadsheet-fill"></i> Download Excel</a>
+                </div>
                 <div class="gad-title plain mb-2">
                     GAD Plan and Budget FY {{ $plan->year }}
                     @if ($plan->department)

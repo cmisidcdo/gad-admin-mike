@@ -302,6 +302,60 @@ body.gad-mini .gad-main {
     transform: translateX(-2px);
 }
 
+.btn-gad-print {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #ffffff;
+    color: var(--gad-navy);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--gad-border);
+    box-shadow: var(--gad-shadow-sm);
+    text-decoration: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+.btn-gad-print:hover {
+    background: #2563eb;
+    color: #ffffff;
+    border-color: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+}
+.btn-gad-print.pink:hover {
+    background: #be185d;
+    color: #ffffff;
+    border-color: #be185d;
+    box-shadow: 0 4px 10px rgba(190, 24, 93, 0.25);
+}
+
+.btn-gad-excel {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #ffffff;
+    color: #15803d;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: 1px solid #bbf7d0;
+    box-shadow: var(--gad-shadow-sm);
+    text-decoration: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+.btn-gad-excel:hover {
+    background: #16a34a;
+    color: #ffffff;
+    border-color: #16a34a;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(22, 163, 74, 0.3);
+}
+
 .btn-xs {
     font-size: 11px;
     padding: 4px 10px;

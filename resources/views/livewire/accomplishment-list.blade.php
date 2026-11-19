@@ -111,6 +111,8 @@
                     </td>
                     <td class="text-center">
                         <a href="{{ route('accomplishment.show', $report->id) }}" class="btn-xs view mb-1 text-decoration-none"><i class="bi bi-eye-fill"></i>View</a><br>
+                        <a href="{{ route('accomplishment.print', $report->id) }}" target="_blank" class="btn-xs print mb-1 text-decoration-none" style="background:#831843;" title="Print Report"><i class="bi bi-printer-fill"></i>Print</a><br>
+                        <a href="{{ route('accomplishment.excel', $report->id) }}" class="btn-xs print mb-1 text-decoration-none" style="background:#16a34a;" title="Export Excel"><i class="bi bi-file-earmark-spreadsheet"></i>Excel</a><br>
                         <button type="button" class="btn-xs track mb-1" wire:click="track({{ $report->id }})"><i class="bi bi-geo-alt-fill"></i>Track</button><br>
                         @if ((int) auth()->user()->user_role_id === 1)
                         <button type="button" class="btn-xs update mb-1" wire:click="openStatus({{ $report->id }})"><i class="bi bi-arrow-repeat"></i>Status</button><br>

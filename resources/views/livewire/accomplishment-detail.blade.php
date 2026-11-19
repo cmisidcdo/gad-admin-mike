@@ -13,7 +13,11 @@
     <div class="gad-card">
         <div class="d-flex justify-content-between align-items-start mb-2">
             <div>
-                <a href="{{ route('accomplishment') }}" class="btn-gad-back mb-2"><i class="bi bi-arrow-left"></i> Back</a>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <a href="{{ route('accomplishment') }}" class="btn-gad-back"><i class="bi bi-arrow-left"></i> Back</a>
+                    <a href="{{ route('accomplishment.print', $report->id) }}" target="_blank" class="btn-gad-print pink"><i class="bi bi-printer-fill"></i> Printable Report</a>
+                    <a href="{{ route('accomplishment.excel', $report->id) }}" class="btn-gad-excel"><i class="bi bi-file-earmark-spreadsheet-fill"></i> Download Excel</a>
+                </div>
                 <div class="gad-title plain mb-2">
                     GAD Accomplishment Report FY {{ $report->year }}
                     @if ($report->department)

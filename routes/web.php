@@ -61,11 +61,53 @@ Route::group(['middleware' => 'auth'], function () {
 
     // GAD Plan and Budget
     Route::get('/plan-budget', fn () => view('plan-budget.index'))->name('plan-budget');
-    Route::get('/plan-budget/{plan}', fn (\App\Models\GadPlan $plan) => view('plan-budget.show', compact('plan')))->name('plan-budget.show');
+    Route::get('/plan-budget/{plan}', function (\App\Models\GadPlan $plan) {
+        $user = auth()->user();
+        if ((int)$user->user_role_id !== 1 && $plan->department_id !== $user->office && $plan->created_by !== $user->id) {
+            abort(403, 'Unauthorized access to this office plan.');
+        }
+        return view('plan-budget.show', compact('plan'));
+    })->name('plan-budget.show');
+    Route::get('/plan-budget/{plan}/print', function (\App\Models\GadPlan $plan) {
+        $user = auth()->user();
+        if ((int)$user->user_role_id !== 1 && $plan->department_id !== $user->office && $plan->created_by !== $user->id) {
+            abort(403, 'Unauthorized access to this office plan report.');
+        }
+        $plan->load(['entries', 'attributedPrograms', 'department', 'creator']);
+        return view('plan-budget.print', compact('plan'));
+    })->name('plan-budget.print');
+    Route::get('/plan-budget/{plan}/excel', function (\App\Models\GadPlan $plan) {
+        $user = auth()->user();
+        if ((int)$user->user_role_id !== 1 && $plan->department_id !== $user->office && $plan->created_by !== $user->id) {
+            abort(403, 'Unauthorized access to this office plan export.');
+        }
+        return \App\Services\GadExcelExportService::exportPlan($plan);
+    })->name('plan-budget.excel');
 
     // GAD Accomplishment Report
     Route::get('/accomplishment', fn () => view('accomplishment.index'))->name('accomplishment');
-    Route::get('/accomplishment/{report}', fn (\App\Models\GadAccomplishment $report) => view('accomplishment.show', compact('report')))->name('accomplishment.show');
+    Route::get('/accomplishment/{report}', function (\App\Models\GadAccomplishment $report) {
+        $user = auth()->user();
+        if ((int)$user->user_role_id !== 1 && $report->department_id !== $user->office && $report->created_by !== $user->id) {
+            abort(403, 'Unauthorized access to this office accomplishment report.');
+        }
+        return view('accomplishment.show', compact('report'));
+    })->name('accomplishment.show');
+    Route::get('/accomplishment/{report}/print', function (\App\Models\GadAccomplishment $report) {
+        $user = auth()->user();
+        if ((int)$user->user_role_id !== 1 && $report->department_id !== $user->office && $report->created_by !== $user->id) {
+            abort(403, 'Unauthorized access to this office accomplishment report.');
+        }
+        $report->load(['entries', 'attributedPrograms', 'department', 'creator']);
+        return view('accomplishment.print', compact('report'));
+    })->name('accomplishment.print');
+    Route::get('/accomplishment/{report}/excel', function (\App\Models\GadAccomplishment $report) {
+        $user = auth()->user();
+        if ((int)$user->user_role_id !== 1 && $report->department_id !== $user->office && $report->created_by !== $user->id) {
+            abort(403, 'Unauthorized access to this office accomplishment report export.');
+        }
+        return \App\Services\GadExcelExportService::exportAccomplishment($report);
+    })->name('accomplishment.excel');
 });
 
 Livewire::setScriptRoute(function ($handle) {

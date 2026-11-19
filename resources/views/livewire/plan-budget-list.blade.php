@@ -104,6 +104,8 @@
                     </td>
                     <td class="text-center">
                         <a href="{{ route('plan-budget.show', $plan->id) }}" class="btn-xs view mb-1 text-decoration-none"><i class="bi bi-eye-fill"></i>View</a><br>
+                        <a href="{{ route('plan-budget.print', $plan->id) }}" target="_blank" class="btn-xs print mb-1 text-decoration-none" style="background:#475569;" title="Print Report"><i class="bi bi-printer-fill"></i>Print</a><br>
+                        <a href="{{ route('plan-budget.excel', $plan->id) }}" class="btn-xs print mb-1 text-decoration-none" style="background:#16a34a;" title="Export Excel"><i class="bi bi-file-earmark-spreadsheet"></i>Excel</a><br>
                         <button type="button" class="btn-xs track mb-1" wire:click="track({{ $plan->id }})"><i class="bi bi-geo-alt-fill"></i>Track</button><br>
                         @if ((int) auth()->user()->user_role_id === 1)
                         <button type="button" class="btn-xs update mb-1" wire:click="openStatus({{ $plan->id }})"><i class="bi bi-arrow-repeat"></i>Status</button><br>
