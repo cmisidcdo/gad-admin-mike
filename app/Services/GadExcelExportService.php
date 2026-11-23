@@ -18,7 +18,11 @@ class GadExcelExportService
         $filename = 'GAD_Plan_and_Budget_FY' . $plan->year . '_' . preg_replace('/[^A-Za-z0-9_-]/', '_', $deptName) . '.xls';
 
         return response()->streamDownload(function () use ($plan) {
-            echo view('exports.plan-budget-excel', ['plan' => $plan])->render();
+            echo view('exports.plan-budget-excel', [
+                'plan' => $plan,
+                'entries' => $plan->entries,
+                'attributed' => $plan->attributedPrograms,
+            ])->render();
         }, $filename, [
             'Content-Type' => 'application/vnd.ms-excel; charset=utf-8',
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
@@ -36,7 +40,11 @@ class GadExcelExportService
         $filename = 'GAD_Accomplishment_Report_FY' . $report->year . '_' . preg_replace('/[^A-Za-z0-9_-]/', '_', $deptName) . '.xls';
 
         return response()->streamDownload(function () use ($report) {
-            echo view('exports.accomplishment-excel', ['report' => $report])->render();
+            echo view('exports.accomplishment-excel', [
+                'report' => $report,
+                'entries' => $report->entries,
+                'attributed' => $report->attributedPrograms,
+            ])->render();
         }, $filename, [
             'Content-Type' => 'application/vnd.ms-excel; charset=utf-8',
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',

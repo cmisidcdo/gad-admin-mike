@@ -598,7 +598,7 @@ body.gad-mini .gad-main {
     box-shadow: var(--gad-shadow-sm);
 }
 .form-panel.scrollable-form {
-    overflow-x: auto;
+    overflow-x: visible;
     padding-bottom: 12px;
 }
 .form-grid label {
@@ -621,18 +621,23 @@ body.gad-mini .gad-main {
 /* 13-column flex/grid layout matching Figma Desktop-4 */
 .figma-gpb-form-row {
     display: flex;
-    gap: 8px;
-    min-width: 1450px;
+    flex-wrap: wrap;
+    gap: 10px 12px;
     align-items: flex-start;
 }
 .figma-gpb-col {
     display: flex;
     flex-direction: column;
+    min-width: 0;
 }
 .figma-gpb-col .gad-input,
 .figma-gpb-col .gad-select,
 .figma-gpb-col textarea {
     width: 100%;
+}
+.figma-gpb-col textarea {
+    min-height: 60px;
+    resize: vertical;
 }
 
 /* Accomplishment Report form row */

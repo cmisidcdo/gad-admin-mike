@@ -69,8 +69,9 @@
         </button>
         @if ($openForm === 'org')
         <div class="form-panel form-grid scrollable-form">
-            <div class="figma-gpb-form-row">
-                <div class="figma-gpb-col" style="width: 100px;">
+            {{-- Row 1: 10 upper fields --}}
+        <div class="figma-gpb-form-row">
+                <div class="figma-gpb-col" style="flex:0 0 110px;">
                     <label>Focused <span class="req">*</span></label>
                     <select class="gad-select" style="{{ $field('entry.focused') }}" wire:model="entry.focused">
                         <option value="">Select...</option>
@@ -78,27 +79,27 @@
                     </select>
                 </div>
 
-                <div class="figma-gpb-col" style="width: 110px;">
+                <div class="figma-gpb-col" style="flex:0 0 130px;">
                     <label>Gender Issue or GAD Mandate <span class="req">*</span></label>
                     <textarea class="gad-input" placeholder="Enter Text..." style="{{ $field('entry.gender_issue') }}" wire:model="entry.gender_issue"></textarea>
                 </div>
 
-                <div class="figma-gpb-col" style="width: 120px;">
+                <div class="figma-gpb-col" style="flex:1 1 160px;">
                     <label>Title/ Description of Gender Issue or GAD Mandate <span class="req">*</span></label>
                     <textarea class="gad-input" placeholder="Enter Text..." style="{{ $field('entry.title_description') }}" wire:model="entry.title_description"></textarea>
                 </div>
 
-                <div class="figma-gpb-col" style="width: 100px;">
+                <div class="figma-gpb-col" style="flex:1 1 130px;">
                     <label>Supporting Statistics Data</label>
                     <textarea class="gad-input" placeholder="Enter Text..." wire:model="entry.supporting_statistics"></textarea>
                 </div>
 
-                <div class="figma-gpb-col" style="width: 100px;">
+                <div class="figma-gpb-col" style="flex:1 1 130px;">
                     <label>Source of Supporting Statistics Data</label>
                     <textarea class="gad-input" placeholder="Enter Text..." wire:model="entry.statistics_source"></textarea>
                 </div>
 
-                <div class="figma-gpb-col" style="width: 100px;">
+                <div class="figma-gpb-col" style="flex:0 0 115px;">
                     <label>PPA Sectors <span class="req">*</span></label>
                     <select class="gad-select" style="{{ $field('entry.ppa_sector') }}" wire:model="entry.ppa_sector">
                         <option value="">Select...</option>
@@ -106,49 +107,63 @@
                     </select>
                 </div>
 
-                <div class="figma-gpb-col" style="width: 110px;">
+                <div class="figma-gpb-col" style="flex:1 1 140px;">
                     <label>GAD Objective <span class="req">*</span></label>
                     <textarea class="gad-input" placeholder="Enter Text..." style="{{ $field('entry.gad_objective') }}" wire:model="entry.gad_objective"></textarea>
                 </div>
 
-                <div class="figma-gpb-col" style="width: 110px;">
-                    <label>Relevant LGU Program or Project <span class="req">*</span></label>
+                <div class="figma-gpb-col" style="flex:1 1 140px;">
+                    <label>Relevant LGU Program or Project</label>
                     <textarea class="gad-input" placeholder="Enter Text..." style="{{ $field('entry.lgu_program') }}" wire:model="entry.lgu_program"></textarea>
                 </div>
 
-                <div class="figma-gpb-col" style="width: 100px;">
+                <div class="figma-gpb-col" style="flex:0 0 130px;">
                     <label>Activity Category <span class="req">*</span></label>
-                    <select class="gad-select mb-1" style="{{ $field('entry.activity_category') }}" wire:model="entry.activity_category">
+                    <select class="gad-select" style="{{ $field('entry.activity_category') }}" wire:model="entry.activity_category">
                         <option value="">Select...</option>
                         @foreach ($cfg['activity_categories'] as $o)<option>{{ $o }}</option>@endforeach
                     </select>
                 </div>
 
-                <div class="figma-gpb-col" style="width: 100px;">
+                <div class="figma-gpb-col" style="flex:1 1 130px;">
                     <label>Other Activity Category Value</label>
                     <input class="gad-input" placeholder="Enter Text..." wire:model="entry.other_activity_category">
                 </div>
+            </div>
 
-                <div class="figma-gpb-col" style="width: 110px;">
+        {{-- Row 2: remaining fields --}}
+        <div class="figma-gpb-form-row mt-2">
+                <div class="figma-gpb-col" style="flex:1 1 160px;">
                     <label>GAD Activity <span class="req">*</span></label>
                     <textarea class="gad-input" placeholder="Enter Text..." style="{{ $field('entry.gad_activity') }}" wire:model="entry.gad_activity"></textarea>
                 </div>
 
-                <div class="figma-gpb-col" style="width: 105px;">
+                <div class="figma-gpb-col" style="flex:0 0 160px;">
                     <label>Date of Implementation <span class="req">*</span></label>
                     <input type="date" class="gad-input" style="{{ $field('entry.date_of_implementation') }}" wire:model="entry.date_of_implementation">
                 </div>
 
-                <div class="figma-gpb-col" style="width: 110px;">
+                <div class="figma-gpb-col" style="flex:1 1 220px;">
                     <label>Performance Target / Indicator <span class="req">*</span></label>
                     <textarea class="gad-input" placeholder="Enter Text..." style="{{ $field('entry.performance_indicator') }}" wire:model="entry.performance_indicator"></textarea>
                 </div>
 
-                <div class="figma-gpb-col" style="width: 115px;">
+                <div class="figma-gpb-col" style="flex:0 0 240px;">
                     <label>GAD Budget (MOE, PS, CO) <span class="req">*</span></label>
-                    <input type="number" step="0.01" min="0" class="gad-input mb-1" placeholder="MOE" wire:model="entry.moe">
-                    <input type="number" step="0.01" min="0" class="gad-input mb-1" placeholder="PS" wire:model="entry.ps">
-                    <input type="number" step="0.01" min="0" class="gad-input" placeholder="CO" wire:model="entry.co">
+                    <div class="d-flex gap-2">
+                        <div class="flex-fill">
+                            <small class="text-muted d-block" style="font-size:10px">MOE</small>
+                            <input type="number" step="0.01" min="0" class="gad-input" placeholder="MOE" wire:model="entry.moe">
+                        </div>
+                        <div class="flex-fill">
+                            <small class="text-muted d-block" style="font-size:10px">PS</small>
+                            <input type="number" step="0.01" min="0" class="gad-input" placeholder="PS" wire:model="entry.ps">
+                        </div>
+                        <div class="flex-fill">
+                            <small class="text-muted d-block" style="font-size:10px">CO</small>
+                            <input type="number" step="0.01" min="0" class="gad-input" placeholder="CO" wire:model="entry.co">
+                        </div>
+                    </div>
                 </div>
             </div>
 
