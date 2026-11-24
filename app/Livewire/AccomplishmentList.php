@@ -11,7 +11,10 @@ use Livewire\WithPagination;
 
 class AccomplishmentList extends Component
 {
-    use WithPagination, WithFileUploads;
+    use WithPagination, WithFileUploads, \App\Livewire\Concerns\CleansMoney;
+
+    /** Amount fields shown with commas (stripped on the server). */
+    protected array $moneyFields = ['totalOfficeBudget'];
 
     protected $paginationTheme = 'bootstrap';
 

@@ -156,9 +156,9 @@
             <div class="gad-modal-head">PRIMARY INFORMATION <button class="x" wire:click="$set('showAdd', false)">&times;</button></div>
             <div class="gad-modal-body">
                 @if ($isAdmin)
-                <div class="d-flex align-items-center mb-2">
-                    <span class="gad-label" style="width:130px">Office / Dept</span>
-                    <select class="gad-select flex-grow-1" wire:model="departmentId">
+                <div class="gad-field-row">
+                    <span class="gad-label">Office / Dept</span>
+                    <select class="gad-select" wire:model="departmentId">
                         <option value="">Select Office</option>
                         @foreach ($departments as $d)
                         <option value="{{ $d->department_id }}">{{ $d->department_name }}</option>
@@ -167,14 +167,14 @@
                 </div>
                 @error('departmentId') <div class="error-text mb-1">{{ $message }}</div> @enderror
                 @else
-                <div class="d-flex align-items-center mb-2">
-                    <span class="gad-label" style="width:130px">Office</span>
-                    <span class="gad-select flex-grow-1 bg-light fw-bold">{{ auth()->user()->department->department_name ?? auth()->user()->office ?? 'My Office' }}</span>
+                <div class="gad-field-row">
+                    <span class="gad-label">Office</span>
+                    <span class="gad-select bg-light fw-bold">{{ auth()->user()->department->department_name ?? auth()->user()->office ?? 'My Office' }}</span>
                 </div>
                 @endif
-                <div class="d-flex align-items-center mb-2">
-                    <span class="gad-label" style="width:130px">Year</span>
-                    <select class="gad-select flex-grow-1" wire:model="year">
+                <div class="gad-field-row">
+                    <span class="gad-label">Year</span>
+                    <select class="gad-select" wire:model="year">
                         <option value="">Select Year</option>
                         @foreach ($years as $y)
                         <option value="{{ $y }}">{{ $y }}</option>
@@ -182,9 +182,9 @@
                     </select>
                 </div>
                 @error('year') <div class="error-text mb-1">{{ $message }}</div> @enderror
-                <div class="d-flex align-items-center mb-3">
-                    <span class="gad-label" style="width:130px">Total Office Budget</span>
-                    <input type="number" step="0.01" min="0" class="gad-input flex-grow-1" wire:model="totalOfficeBudget">
+                <div class="gad-field-row">
+                    <span class="gad-label">Total Office Budget</span>
+                    <input type="text" inputmode="decimal" autocomplete="off" class="gad-input money-input" wire:model="totalOfficeBudget">
                 </div>
                 @error('totalOfficeBudget') <div class="error-text mb-2">{{ $message }}</div> @enderror
                 <div class="text-end">

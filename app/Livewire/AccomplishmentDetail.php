@@ -10,7 +10,10 @@ use Livewire\WithFileUploads;
 
 class AccomplishmentDetail extends Component
 {
-    use WithFileUploads;
+    use WithFileUploads, \App\Livewire\Concerns\CleansMoney;
+
+    /** Amount fields shown with commas (stripped on the server). */
+    protected array $moneyFields = ['officeBudget', 'entry.approved_gad_budget', 'entry.actual_cost', 'attr.total_annual_cost', 'attr.gad_attributed_cost'];
 
     public GadAccomplishment $report;
 

@@ -10,7 +10,10 @@ use Livewire\WithFileUploads;
 
 class PlanBudgetDetail extends Component
 {
-    use WithFileUploads;
+    use WithFileUploads, \App\Livewire\Concerns\CleansMoney;
+
+    /** Amount fields shown with commas (stripped on the server). */
+    protected array $moneyFields = ['officeBudget', 'entry.moe', 'entry.ps', 'entry.co', 'attr.total_annual_budget'];
 
     public GadPlan $plan;
 
@@ -38,7 +41,7 @@ class PlanBudgetDetail extends Component
     public $attachType = null;
     public $attachId = null;
     public $file;
-    public $arFile;
+    public $selectedArId = '';
     public $showAr = false;
 
     // Field Remarks modal (Admin can add/edit, user can view)
@@ -121,15 +124,52 @@ class PlanBudgetDetail extends Component
         $this->refreshPlan();
     }
 
-    /* ---------- AR attachment ---------- */
+    /* ---------- AR (Accomplishment Report) link ---------- */
+
+    public function openAr()
+    {
+        $this->ensureEditable();
+        $this->resetValidation();
+        $this->selectedArId = optional($this->plan->accomplishmentReport)->id ?? '';
+        $this->showAr = true;
+    }
 
     public function saveAr()
     {
         $this->ensureEditable();
-        $this->validate(['arFile' => 'required|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:' . config('gad.upload_max_kb')]);
-        $this->plan->update(['ar_attachment' => $this->arFile->store('gad-plans/ar', 'public')]);
-        $this->reset(['arFile', 'showAr']);
+        $this->validate(
+            ['selectedArId' => 'required|integer'],
+            ['selectedArId.required' => 'Please select an Accomplishment Report.']
+        );
+        $this->plan->attachReport((int) $this->selectedArId);
+        $this->reset(['selectedArId', 'showAr']);
         $this->refreshPlan();
+    }
+
+    public function detachAr()
+    {
+        $this->ensureEditable();
+        $this->plan->detachReport();
+        $this->refreshPlan();
+    }
+
+    /** Copy a previous GAD activity from the attached AR into the input form. */
+    public function useArEntry($id)
+    {
+        $this->ensureEditable();
+        $ar = $this->plan->accomplishmentReport;
+        abort_unless($ar, 404);
+        $row = $ar->entries()->findOrFail($id);
+
+        $this->resetEntry();
+        $this->entry['focused'] = in_array($row->focus, config('gad.focused'), true) ? $row->focus : '';
+        $this->entry['gender_issue'] = (string) $row->gender_issue;
+        $this->entry['gad_objective'] = (string) $row->gad_objective;
+        $this->entry['lgu_program'] = (string) $row->lgu_program;
+        $this->entry['gad_activity'] = (string) $row->gad_activity;
+        $this->entry['performance_indicator'] = (string) $row->performance_indicator;
+        $this->entry['moe'] = $row->approved_gad_budget;
+        $this->openForm = 'org';
     }
 
     /* ---------- org/client-focused entries ---------- */
@@ -341,7 +381,14 @@ class PlanBudgetDetail extends Component
             ->when($this->categoryFilter && $this->openForm === 'attributed', fn ($q) => $q->where('ppa_sector', $this->categoryFilter))
             ->orderBy('id')->get();
 
+        $linkedAr = $this->plan->accomplishmentReport;
+        if ($linkedAr) {
+            $linkedAr->load('entries');
+        }
+
         return view('livewire.plan-budget-detail', [
+            'linkedAr' => $linkedAr,
+            'availableReports' => $this->showAr ? $this->plan->linkableReports()->get() : collect(),
             'entries' => $entries,
             'attributed' => $attributed,
             'detailEntry' => $this->detailsId ? GadPlanEntry::where('gad_plan_id', $this->plan->id)->find($this->detailsId) : null,

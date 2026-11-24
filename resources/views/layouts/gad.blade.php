@@ -13,7 +13,7 @@
     <link href="{{ asset('assets/vendor/bootstrap-icons/bootstrap-icons.css') }}" rel="stylesheet" />
     <link href="{{ asset('assets/vendor/boxicons/css/boxicons.min.css') }}" rel="stylesheet" />
     <link href="{{ asset('assets/vendor/remixicon/remixicon.css') }}" rel="stylesheet" />
-    <link href="{{ asset('assets/css/gad.css') }}" rel="stylesheet" />
+    <link href="{{ asset('assets/css/gad.css') }}?v={{ filemtime(public_path('assets/css/gad.css')) }}" rel="stylesheet" />
 </head>
 
 <body class="@yield('body-class')">
@@ -55,6 +55,7 @@
     </main>
 
     <script src="{{ asset('assets/vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ asset('assets/js/gad-money.js') }}?v={{ filemtime(public_path('assets/js/gad-money.js')) }}"></script>
 </body>
 
 </html>

@@ -748,3 +748,38 @@ body.gad-mini .gad-main {
     color: #ffffff;
     box-shadow: 0 2px 6px rgba(36, 82, 122, 0.3);
 }
+
+
+/* ---- Aligned label/field rows (modals) ---- */
+.gad-field-row {
+    display: grid;
+    grid-template-columns: 145px minmax(0, 1fr);
+    align-items: stretch;
+    width: 100%;
+    margin-bottom: 10px;
+}
+.gad-field-row > .gad-label {
+    width: 100%;
+    margin: 0;
+    box-sizing: border-box;
+    white-space: nowrap;
+}
+.gad-field-row > .gad-select,
+.gad-field-row > .gad-input {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    margin: 0;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+.gad-field-row > span.gad-select {
+    display: flex;
+    align-items: center;
+}
+
+/* ---- Amount inputs (comma + .00) ---- */
+.money-input {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}

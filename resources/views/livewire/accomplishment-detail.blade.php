@@ -30,7 +30,7 @@
                 <div class="mb-2 d-flex align-items-center">
                     <span class="gad-label me-1">Total Office Budget</span>
                     @if ($editingBudget && $this->canEdit())
-                    <input type="number" step="0.01" min="0" class="gad-input me-1" style="width:150px" wire:model="officeBudget">
+                    <input type="text" inputmode="decimal" autocomplete="off" class="gad-input money-input me-1" style="width:170px" wire:model="officeBudget">
                     <button class="btn-xs save" wire:click="saveBudget"><i class="bi bi-check-lg"></i></button>
                     <button class="btn-xs clear ms-1" wire:click="$set('editingBudget', false)"><i class="bi bi-x-lg"></i></button>
                     @error('officeBudget') <span class="error-text ms-1">{{ $message }}</span> @enderror
@@ -110,9 +110,9 @@
 
                 <div class="figma-ar-col" style="width: 130px;">
                     <label>Approved GAD Budget</label>
-                    <input type="number" step="0.01" min="0" class="gad-input mb-1" placeholder="0.00" wire:model="entry.approved_gad_budget">
+                    <input type="text" inputmode="decimal" autocomplete="off" class="gad-input money-input mb-1" placeholder="0.00" wire:model="entry.approved_gad_budget">
                     <label class="mt-1">Actual Cost or Expenditure</label>
-                    <input type="number" step="0.01" min="0" class="gad-input" placeholder="0.00" wire:model="entry.actual_cost">
+                    <input type="text" inputmode="decimal" autocomplete="off" class="gad-input money-input" placeholder="0.00" wire:model="entry.actual_cost">
                 </div>
 
                 <div class="figma-ar-col" style="width: 140px;">
@@ -147,9 +147,9 @@
                 <div class="col-3"><label>HGDG PIMME/FIMME Score / Desc</label>
                     <input class="gad-input" placeholder="Sample checklist score" wire:model="attr.checklist_score_desc"></div>
                 <div class="col-2"><label>Total Annual Program Cost / Exp</label>
-                    <input type="number" step="0.01" min="0" class="gad-input" wire:model="attr.total_annual_cost"></div>
+                    <input type="text" inputmode="decimal" autocomplete="off" class="gad-input money-input" wire:model="attr.total_annual_cost"></div>
                 <div class="col-3"><label>GAD Attributed Program/Project Cost / Exp</label>
-                    <input type="number" step="0.01" min="0" class="gad-input" wire:model="attr.gad_attributed_cost"></div>
+                    <input type="text" inputmode="decimal" autocomplete="off" class="gad-input money-input" wire:model="attr.gad_attributed_cost"></div>
                 <div class="col-12"><label>Variance / Remarks</label>
                     <textarea class="gad-input" rows="2" wire:model="attr.variance_remarks"></textarea></div>
             </div>

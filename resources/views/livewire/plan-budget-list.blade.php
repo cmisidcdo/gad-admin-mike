@@ -88,7 +88,13 @@
                         @endif
                     </td>
                     <td>
-                        @if ($plan->accomplishment_report)
+                        @if ($plan->accomplishmentReport)
+                        <div class="mb-2">
+                            <a class="attach-chip" target="_blank" href="{{ route('accomplishment.show', $plan->accomplishmentReport->id) }}"><i class="bi bi-eye me-1"></i>AR FY {{ $plan->accomplishmentReport->year }}</a>
+                            <button type="button" class="btn-xs update" title="Change AR" wire:click="openAttach({{ $plan->id }})"><i class="bi bi-pencil-fill"></i></button>
+                            <button type="button" class="btn-xs delete" title="Detach AR" wire:click="detachAr({{ $plan->id }})" wire:confirm="Detach this Accomplishment Report from the plan?"><i class="bi bi-x-lg"></i></button>
+                        </div>
+                        @elseif ($plan->accomplishment_report)
                         <a class="attach-chip mb-2" target="_blank" href="{{ asset('storage/' . $plan->accomplishment_report) }}"><i class="bi bi-eye me-1"></i>Accomplishment Report</a>
                         @elseif ($plan->ar_attachment)
                         <a class="attach-chip mb-2" target="_blank" href="{{ asset('storage/' . $plan->ar_attachment) }}"><i class="bi bi-paperclip me-1"></i>AR attached</a>
@@ -149,9 +155,9 @@
             <div class="gad-modal-head">PRIMARY INFORMATION <button class="x" wire:click="$set('showAdd', false)">&times;</button></div>
             <div class="gad-modal-body">
                 @if ($isAdmin)
-                <div class="d-flex align-items-center mb-2">
-                    <span class="gad-label" style="width:130px">Office / Dept</span>
-                    <select class="gad-select flex-grow-1" wire:model="departmentId">
+                <div class="gad-field-row">
+                    <span class="gad-label">Office / Dept</span>
+                    <select class="gad-select" wire:model="departmentId">
                         <option value="">Select Office</option>
                         @foreach ($departments as $d)
                         <option value="{{ $d->department_id }}">{{ $d->department_name }}</option>
@@ -160,14 +166,14 @@
                 </div>
                 @error('departmentId') <div class="error-text mb-1">{{ $message }}</div> @enderror
                 @else
-                <div class="d-flex align-items-center mb-2">
-                    <span class="gad-label" style="width:130px">Office</span>
-                    <span class="gad-select flex-grow-1 bg-light fw-bold">{{ auth()->user()->department->department_name ?? auth()->user()->office ?? 'My Office' }}</span>
+                <div class="gad-field-row">
+                    <span class="gad-label">Office</span>
+                    <span class="gad-select bg-light fw-bold">{{ auth()->user()->department->department_name ?? auth()->user()->office ?? 'My Office' }}</span>
                 </div>
                 @endif
-                <div class="d-flex align-items-center mb-2">
-                    <span class="gad-label" style="width:130px">Year</span>
-                    <select class="gad-select flex-grow-1" wire:model="year">
+                <div class="gad-field-row">
+                    <span class="gad-label">Year</span>
+                    <select class="gad-select" wire:model="year">
                         <option value="">Select Year</option>
                         @foreach ($years as $y)
                         <option value="{{ $y }}">{{ $y }}</option>
@@ -175,9 +181,9 @@
                     </select>
                 </div>
                 @error('year') <div class="error-text mb-1">{{ $message }}</div> @enderror
-                <div class="d-flex align-items-center mb-3">
-                    <span class="gad-label" style="width:130px">Total Office Budget</span>
-                    <input type="number" step="0.01" min="0" class="gad-input flex-grow-1" wire:model="totalOfficeBudget">
+                <div class="gad-field-row">
+                    <span class="gad-label">Total Office Budget</span>
+                    <input type="text" inputmode="decimal" autocomplete="off" class="gad-input money-input" wire:model="totalOfficeBudget">
                 </div>
                 @error('totalOfficeBudget') <div class="error-text mb-2">{{ $message }}</div> @enderror
                 <div class="text-end">
@@ -252,11 +258,20 @@
         <div class="gad-modal">
             <div class="gad-modal-head">ATTACH AR <button class="x" wire:click="$set('attachId', null)">&times;</button></div>
             <div class="gad-modal-body">
-                <input type="file" class="form-control form-control-sm mb-1" wire:model="arFile" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
-                @error('arFile') <div class="error-text mb-2">{{ $message }}</div> @enderror
-                <div wire:loading wire:target="arFile" class="error-text">Uploading...</div>
+                <label class="gad-label mb-1">Select Accomplishment Report</label>
+                <select class="gad-select w-100 mb-1" wire:model="selectedArId">
+                    <option value="">-- Select AR --</option>
+                    @foreach ($availableReports as $r)
+                    <option value="{{ $r->id }}">AR FY {{ $r->year }} - {{ $r->status }}</option>
+                    @endforeach
+                </select>
+                @error('selectedArId') <div class="error-text mb-2">{{ $message }}</div> @enderror
+                @if ($availableReports->isEmpty())
+                <div class="text-danger mb-2" style="font-size:11px">No Accomplishment Report created for this office yet. Create one in the Accomplishment page first.</div>
+                @endif
+                <div class="text-muted mb-2" style="font-size:11px">Attach AR to Plan and Budget to get the previous GAD Activities and other data.</div>
                 <div class="text-end mt-3">
-                    <button class="btn-xs save lg" wire:click="saveAttach" wire:loading.attr="disabled" wire:target="saveAttach,arFile"><i class="bi bi-floppy"></i> Save</button>
+                    <button class="btn-xs save lg" wire:click="saveAttach" wire:loading.attr="disabled" wire:target="saveAttach"><i class="bi bi-floppy"></i> Save</button>
                 </div>
             </div>
         </div>

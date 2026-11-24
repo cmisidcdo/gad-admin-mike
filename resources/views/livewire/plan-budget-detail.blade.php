@@ -30,7 +30,7 @@
                 <div class="mb-2 d-flex align-items-center">
                     <span class="gad-label me-1">Total Office Budget</span>
                     @if ($editingBudget && $this->canEdit())
-                    <input type="number" step="0.01" min="0" class="gad-input me-1" style="width:150px" wire:model="officeBudget">
+                    <input type="text" inputmode="decimal" autocomplete="off" class="gad-input money-input me-1" style="width:170px" wire:model="officeBudget">
                     <button class="btn-xs save" wire:click="saveBudget"><i class="bi bi-check-lg"></i></button>
                     <button class="btn-xs clear ms-1" wire:click="$set('editingBudget', false)"><i class="bi bi-x-lg"></i></button>
                     @error('officeBudget') <span class="error-text ms-1">{{ $message }}</span> @enderror
@@ -50,16 +50,64 @@
                 <span class="badge-status {{ $statusClass }}">{{ strtoupper($plan->status) }}</span>
                 <div class="mt-4">
                     <span class="gad-label">Attachment of AR</span>
-                    @if ($plan->ar_attachment)
+                    @if ($linkedAr)
+                    <a class="ms-1" target="_blank" href="{{ route('accomplishment.show', $linkedAr->id) }}" style="font-size:11px"><i class="bi bi-link-45deg"></i> AR FY {{ $linkedAr->year }} ({{ $linkedAr->status }})</a>
+                    @if ($this->canEdit())
+                    <a href="#" class="ms-1" style="font-size:11px" wire:click.prevent="openAr">Change</a>
+                    <a href="#" class="ms-1 text-danger" style="font-size:11px" wire:click.prevent="detachAr" wire:confirm="Detach this Accomplishment Report?">Detach</a>
+                    @endif
+                    @elseif ($plan->ar_attachment)
                     <a class="ms-1" target="_blank" href="{{ asset('storage/' . $plan->ar_attachment) }}" style="font-size:11px"><i class="bi bi-paperclip"></i> View AR</a>
                     @elseif ($this->canEdit())
-                    <a href="#" class="ms-1 fst-italic text-danger" style="font-size:11px" wire:click.prevent="$set('showAr', true)">Click here to attach AR</a>
+                    <a href="#" class="ms-1 fst-italic text-danger" style="font-size:11px" wire:click.prevent="openAr">Click here to attach AR</a>
                     @else
                     <span class="ms-1 text-muted fst-italic" style="font-size:11px">No AR Attached</span>
                     @endif
                 </div>
             </div>
         </div>
+
+        {{-- PREVIOUS GAD ACTIVITIES FROM ATTACHED AR --}}
+        @if ($linkedAr)
+        <details class="mt-3" open>
+            <summary class="gad-label" style="cursor:pointer">
+                <i class="bi bi-clock-history me-1"></i>Previous GAD Activities - from AR FY {{ $linkedAr->year }}
+                <a class="ms-2 fw-normal" target="_blank" href="{{ route('accomplishment.show', $linkedAr->id) }}">Open AR</a>
+            </summary>
+            <div class="gad-table-wrapper mt-2">
+                <table class="gad-table">
+                    <thead>
+                        <tr>
+                            <th>Gender Issue / GAD Mandate</th>
+                            <th>GAD Activity</th>
+                            <th>Performance Target / Indicator</th>
+                            <th>Actual Results</th>
+                            <th>Approved Budget</th>
+                            <th>Actual Cost</th>
+                            @if ($this->canEdit())<th>Action</th>@endif
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($linkedAr->entries as $ae)
+                        <tr>
+                            <td>{{ $ae->gender_issue }}</td>
+                            <td>{{ $ae->gad_activity }}</td>
+                            <td>{{ $ae->performance_indicator }}</td>
+                            <td>{{ $ae->actual_results }}</td>
+                            <td class="text-end">{{ number_format($ae->approved_gad_budget, 2) }}</td>
+                            <td class="text-end">{{ number_format($ae->actual_cost, 2) }}</td>
+                            @if ($this->canEdit())
+                            <td class="text-center"><button type="button" class="btn-xs save" wire:click="useArEntry({{ $ae->id }})" title="Copy into the input form"><i class="bi bi-box-arrow-in-down"></i> Use</button></td>
+                            @endif
+                        </tr>
+                        @empty
+                        <tr><td colspan="7" class="text-center text-muted">No accomplishments recorded in the attached AR.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </details>
+        @endif
 
         {{-- ORG / CLIENT FOCUSED FORM --}}
         @if ($this->canEdit())
@@ -153,15 +201,15 @@
                     <div class="d-flex gap-2">
                         <div class="flex-fill">
                             <small class="text-muted d-block" style="font-size:10px">MOE</small>
-                            <input type="number" step="0.01" min="0" class="gad-input" placeholder="MOE" wire:model="entry.moe">
+                            <input type="text" inputmode="decimal" autocomplete="off" class="gad-input money-input" placeholder="MOE" wire:model="entry.moe">
                         </div>
                         <div class="flex-fill">
                             <small class="text-muted d-block" style="font-size:10px">PS</small>
-                            <input type="number" step="0.01" min="0" class="gad-input" placeholder="PS" wire:model="entry.ps">
+                            <input type="text" inputmode="decimal" autocomplete="off" class="gad-input money-input" placeholder="PS" wire:model="entry.ps">
                         </div>
                         <div class="flex-fill">
                             <small class="text-muted d-block" style="font-size:10px">CO</small>
-                            <input type="number" step="0.01" min="0" class="gad-input" placeholder="CO" wire:model="entry.co">
+                            <input type="text" inputmode="decimal" autocomplete="off" class="gad-input money-input" placeholder="CO" wire:model="entry.co">
                         </div>
                     </div>
                 </div>
@@ -203,7 +251,7 @@
                 <div class="col-2"><label>HGDG Design/ Funding Facility Generic Checklist Score</label>
                     <input type="number" step="0.01" min="0" max="20" class="gad-input" style="{{ $field('attr.hgdg_score') }}" wire:model="attr.hgdg_score"></div>
                 <div class="col-2"><label>Total Annual Program/ Project Budget</label>
-                    <input type="number" step="0.01" min="0" class="gad-input" style="{{ $field('attr.total_annual_budget') }}" wire:model="attr.total_annual_budget"></div>
+                    <input type="text" inputmode="decimal" autocomplete="off" class="gad-input money-input" style="{{ $field('attr.total_annual_budget') }}" wire:model="attr.total_annual_budget"></div>
             </div>
             @if ($errors->hasAny(array_map(fn($k) => "attr.$k", array_keys($attr))))
             <div class="error-text mt-1">Please complete the required fields (HGDG score is 0-20).</div>
@@ -565,11 +613,20 @@
         <div class="gad-modal">
             <div class="gad-modal-head">ATTACH AR <button class="x" wire:click="$set('showAr', false)">&times;</button></div>
             <div class="gad-modal-body">
-                <input type="file" class="form-control form-control-sm mb-1" wire:model="arFile" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
-                @error('arFile') <div class="error-text">{{ $message }}</div> @enderror
-                <div wire:loading wire:target="arFile" class="error-text">Uploading...</div>
+                <label class="gad-label mb-1">Select Accomplishment Report</label>
+                <select class="gad-select w-100 mb-1" wire:model="selectedArId">
+                    <option value="">-- Select AR --</option>
+                    @foreach ($availableReports as $r)
+                    <option value="{{ $r->id }}">AR FY {{ $r->year }} - {{ $r->status }}</option>
+                    @endforeach
+                </select>
+                @error('selectedArId') <div class="error-text">{{ $message }}</div> @enderror
+                @if ($availableReports->isEmpty())
+                <div class="text-danger mb-1" style="font-size:11px">No Accomplishment Report created for this office yet. Create one in the Accomplishment page first.</div>
+                @endif
+                <div class="text-muted" style="font-size:11px">Attach AR to Plan and Budget to get the previous GAD Activities and other data.</div>
                 <div class="text-end mt-3">
-                    <button class="btn-xs save lg" wire:click="saveAr" wire:loading.attr="disabled" wire:target="saveAr,arFile"><i class="bi bi-floppy"></i> Save</button>
+                    <button class="btn-xs save lg" wire:click="saveAr" wire:loading.attr="disabled" wire:target="saveAr"><i class="bi bi-floppy"></i> Save</button>
                 </div>
             </div>
         </div>

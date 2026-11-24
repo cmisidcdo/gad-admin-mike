@@ -52,6 +52,42 @@ class GadPlan extends Model
         return $this->hasMany(GadPlanStatusLog::class)->latest();
     }
 
+    /** The created Accomplishment Report (AR) attached to this plan. */
+    public function accomplishmentReport()
+    {
+        return $this->hasOne(GadAccomplishment::class, 'attached_to_gpb_id')->latestOfMany();
+    }
+
+    /** Accomplishment Reports of the same office that can be attached to this plan. */
+    public function linkableReports()
+    {
+        return GadAccomplishment::query()
+            ->when(
+                $this->department_id !== null,
+                fn ($q) => $q->where('department_id', $this->department_id),
+                fn ($q) => $q->where('created_by', $this->created_by)
+            )
+            ->orderByDesc('year')
+            ->orderByDesc('id');
+    }
+
+    /** Attach one AR to this plan (an AR links to a single plan; a plan keeps a single AR). */
+    public function attachReport(int $reportId): void
+    {
+        $report = $this->linkableReports()->findOrFail($reportId);
+
+        GadAccomplishment::where('attached_to_gpb_id', $this->id)
+            ->where('id', '!=', $report->id)
+            ->update(['attached_to_gpb_id' => null]);
+
+        $report->update(['attached_to_gpb_id' => $this->id]);
+    }
+
+    public function detachReport(): void
+    {
+        GadAccomplishment::where('attached_to_gpb_id', $this->id)->update(['attached_to_gpb_id' => null]);
+    }
+
     /** Sum of MOE + PS + CO of org/client-focused entries, plus attributed budgets. */
     public function getTotalGadBudgetAttribute(): float
     {

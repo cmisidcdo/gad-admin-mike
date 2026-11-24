@@ -10,7 +10,10 @@ use Livewire\WithPagination;
 
 class PlanBudgetList extends Component
 {
-    use WithPagination, WithFileUploads;
+    use WithPagination, WithFileUploads, \App\Livewire\Concerns\CleansMoney;
+
+    /** Amount fields shown with commas (stripped on the server). */
+    protected array $moneyFields = ['totalOfficeBudget'];
 
     protected $paginationTheme = 'bootstrap';
 
@@ -30,9 +33,9 @@ class PlanBudgetList extends Component
     // Track modal
     public $trackId = null;
 
-    // Attach AR modal
+    // Attach AR modal (links an existing Accomplishment Report)
     public $attachId = null;
-    public $arFile;
+    public $selectedArId = '';
 
     public function updatingFilterYear() { $this->resetPage(); }
     public function updatingFilterStatus() { $this->resetPage(); }
@@ -106,24 +109,44 @@ class PlanBudgetList extends Component
 
     public function track($id) { $this->trackId = $id; }
 
+    private function authorizedPlan($id): GadPlan
+    {
+        $plan = GadPlan::findOrFail($id);
+        $user = auth()->user();
+
+        if ((int) $user->user_role_id !== 1 && $plan->department_id !== $user->office && $plan->created_by !== $user->id) {
+            abort(403, 'Unauthorized access to other office records.');
+        }
+
+        return $plan;
+    }
+
     public function openAttach($id)
     {
-        $this->reset('arFile');
+        $plan = $this->authorizedPlan($id);
         $this->resetValidation();
+        $this->selectedArId = optional($plan->accomplishmentReport)->id ?? '';
         $this->attachId = $id;
     }
 
     public function saveAttach()
     {
-        $this->validate([
-            'arFile' => 'required|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:' . config('gad.upload_max_kb'),
-        ]);
+        $this->validate(
+            ['selectedArId' => 'required|integer'],
+            ['selectedArId.required' => 'Please select an Accomplishment Report.']
+        );
 
-        $plan = GadPlan::findOrFail($this->attachId);
-        $plan->update(['ar_attachment' => $this->arFile->store('gad-plans/ar', 'public')]);
+        $plan = $this->authorizedPlan($this->attachId);
+        $plan->attachReport((int) $this->selectedArId);
 
-        $this->reset(['attachId', 'arFile']);
-        session()->flash('message', 'Accomplishment Report attached.');
+        $this->reset(['attachId', 'selectedArId']);
+        session()->flash('message', 'Accomplishment Report attached to the Plan and Budget.');
+    }
+
+    public function detachAr($id)
+    {
+        $this->authorizedPlan($id)->detachReport();
+        session()->flash('message', 'Accomplishment Report detached.');
     }
 
     /* ---------- Admin-only: status change & reviewer attachment ---------- */
@@ -184,7 +207,7 @@ class PlanBudgetList extends Component
         $user = auth()->user();
         $isAdmin = (int) $user->user_role_id === 1;
 
-        $plans = GadPlan::with(['attributedPrograms', 'department'])
+        $plans = GadPlan::with(['attributedPrograms', 'department', 'accomplishmentReport'])
             ->when(!$isAdmin, function ($q) use ($user) {
                 $q->where(function ($sub) use ($user) {
                     $sub->where('department_id', $user->office)
@@ -204,6 +227,9 @@ class PlanBudgetList extends Component
             'trackPlan' => $this->trackId ? GadPlan::with('statusLogs')->find($this->trackId) : null,
             'departments' => $isAdmin ? \App\Models\TblRefDepartment::orderBy('department_name')->get() : collect(),
             'isAdmin' => $isAdmin,
+            'availableReports' => $this->attachId
+                ? GadPlan::findOrFail($this->attachId)->linkableReports()->get()
+                : collect(),
         ]);
     }
 }
