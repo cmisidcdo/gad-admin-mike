@@ -76,7 +76,7 @@ class PlanBudgetDetail extends Component
         $this->entry = [
             'focused' => '', 'gender_issue' => '', 'title_description' => '', 'supporting_statistics' => '',
             'statistics_source' => '', 'ppa_sector' => [], 'gad_objective' => '', 'lgu_program' => '',
-            'activity_category' => '', 'other_activity_category' => '', 'gad_activity' => '',
+            'activity_category' => [], 'other_activity_category' => '', 'gad_activity' => '',
             'date_of_implementation' => '', 'performance_indicator' => '', 'moe' => '', 'ps' => '', 'co' => '',
         ];
         $this->resetValidation();
@@ -187,20 +187,23 @@ class PlanBudgetDetail extends Component
             'entry.ppa_sector.*' => 'in:' . implode(',', config('gad.ppa_sectors')),
             'entry.gad_objective' => 'required|string',
             'entry.lgu_program' => 'required|string',
-            'entry.activity_category' => 'required|string',
+            'entry.activity_category' => 'required|array|min:1',
+            'entry.activity_category.*' => 'in:' . implode(',', config('gad.activity_categories')),
             'entry.other_activity_category' => 'nullable|string|max:255',
             'entry.gad_activity' => 'required|string',
             'entry.date_of_implementation' => 'required|date',
             'entry.performance_indicator' => 'required|string',
-            'entry.moe' => 'nullable|numeric|min:0',
-            'entry.ps' => 'nullable|numeric|min:0',
-            'entry.co' => 'nullable|numeric|min:0',
+            'entry.moe' => 'required_without_all:entry.ps,entry.co|nullable|numeric|min:0',
+            'entry.ps' => 'required_without_all:entry.moe,entry.co|nullable|numeric|min:0',
+            'entry.co' => 'required_without_all:entry.moe,entry.ps|nullable|numeric|min:0',
         ], [
             'entry.*.required' => 'Required.',
+            'entry.*.required_without_all' => 'At least one GAD Budget (MOE, PS, or CO) is required.',
         ]);
 
         $data = $this->entry;
         $data['ppa_sector'] = implode(', ', $data['ppa_sector']);
+        $data['activity_category'] = implode(', ', $data['activity_category']);
         foreach (['moe', 'ps', 'co'] as $k) {
             $data[$k] = $data[$k] === '' || $data[$k] === null ? 0 : $data[$k];
         }
@@ -224,6 +227,7 @@ class PlanBudgetDetail extends Component
             ->map(fn ($v) => $v ?? '')
             ->all();
         $this->entry['ppa_sector'] = array_values(array_filter(array_map('trim', explode(',', (string) $row->ppa_sector))));
+        $this->entry['activity_category'] = array_values(array_filter(array_map('trim', explode(',', (string) $row->activity_category))));
         $this->entry['date_of_implementation'] = optional($row->date_of_implementation)->format('Y-m-d') ?? '';
         $this->openForm = 'org';
     }

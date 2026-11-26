@@ -175,12 +175,22 @@
                     <textarea class="gad-input" placeholder="Enter Text..." style="{{ $field('entry.lgu_program') }}" wire:model="entry.lgu_program"></textarea>
                 </div>
 
-                <div class="figma-gpb-col" style="flex:0 0 130px;">
+                <div class="figma-gpb-col" style="flex:0 0 155px;">
                     <label>Activity Category <span class="req">*</span></label>
-                    <select class="gad-select" style="{{ $field('entry.activity_category') }}" wire:model="entry.activity_category">
-                        <option value="">Select...</option>
-                        @foreach ($cfg['activity_categories'] as $o)<option>{{ $o }}</option>@endforeach
-                    </select>
+                    <div class="gad-multiselect" x-data="{ open: false }" @click.outside="open = false">
+                        <button type="button" class="gad-select gad-multiselect-btn" style="{{ $field('entry.activity_category') }}" @click="open = !open">
+                            <span class="text-truncate" x-text="($wire.entry.activity_category && $wire.entry.activity_category.length) ? $wire.entry.activity_category.join(', ') : 'Select...'"></span>
+                            <i class="bi bi-chevron-down ms-1" style="font-size:10px; flex-shrink:0"></i>
+                        </button>
+                        <div class="gad-multiselect-menu" x-show="open" x-cloak>
+                            @foreach ($cfg['activity_categories'] as $o)
+                            <label class="gad-multiselect-item">
+                                <input type="checkbox" value="{{ $o }}" wire:model="entry.activity_category">
+                                <span>{{ $o }}</span>
+                            </label>
+                            @endforeach
+                        </div>
+                    </div>
                 </div>
 
                 <div class="figma-gpb-col" style="flex:1 1 130px;">
@@ -211,15 +221,15 @@
                     <div class="d-flex gap-2">
                         <div class="flex-fill">
                             <small class="text-muted d-block" style="font-size:10px">MOE</small>
-                            <input type="text" inputmode="decimal" autocomplete="off" class="gad-input money-input" placeholder="MOE" wire:model="entry.moe">
+                            <input type="text" inputmode="decimal" autocomplete="off" class="gad-input money-input" style="{{ $field('entry.moe') }}" placeholder="MOE" wire:model="entry.moe">
                         </div>
                         <div class="flex-fill">
                             <small class="text-muted d-block" style="font-size:10px">PS</small>
-                            <input type="text" inputmode="decimal" autocomplete="off" class="gad-input money-input" placeholder="PS" wire:model="entry.ps">
+                            <input type="text" inputmode="decimal" autocomplete="off" class="gad-input money-input" style="{{ $field('entry.ps') }}" placeholder="PS" wire:model="entry.ps">
                         </div>
                         <div class="flex-fill">
                             <small class="text-muted d-block" style="font-size:10px">CO</small>
-                            <input type="text" inputmode="decimal" autocomplete="off" class="gad-input money-input" placeholder="CO" wire:model="entry.co">
+                            <input type="text" inputmode="decimal" autocomplete="off" class="gad-input money-input" style="{{ $field('entry.co') }}" placeholder="CO" wire:model="entry.co">
                         </div>
                     </div>
                 </div>
@@ -580,11 +590,14 @@
                     'PPA Sector' => $detailEntry->ppa_sector,
                     'GAD Objective' => $detailEntry->gad_objective,
                     'Relevant LGU Program or Project' => $detailEntry->lgu_program,
-                    'Activity Category' => $detailEntry->activity_category . ($detailEntry->other_activity_category ? ' - ' . $detailEntry->other_activity_category : ''),
+                    'Activity Category' => $detailEntry->activity_category,
+                    'Other Activity Category Value' => $detailEntry->other_activity_category,
                     'GAD Activity' => $detailEntry->gad_activity,
                     'Date of Implementation' => optional($detailEntry->date_of_implementation)->format('F j, Y'),
                     'Performance Target / Indicator' => $detailEntry->performance_indicator,
-                    'MOOE / PS / CO' => number_format($detailEntry->moe, 2) . ' / ' . number_format($detailEntry->ps, 2) . ' / ' . number_format($detailEntry->co, 2),
+                    'MOOE' => number_format($detailEntry->moe, 2),
+                    'PS' => number_format($detailEntry->ps, 2),
+                    'CO' => number_format($detailEntry->co, 2),
                     ] as $label => $value)
                     <tr><td class="fw-bold" style="width:32%;background:#f6f9ff">{{ $label }}</td><td>{{ $value ?: '-' }}</td></tr>
                     @endforeach
