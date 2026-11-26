@@ -45,7 +45,10 @@
         var el = e.target;
         if (!el.classList || !el.classList.contains('money-input')) return;
         var v = format(el.value, true);
-        if (el.value !== v) el.value = v;
+        if (el.value !== v) {
+            el.value = v;
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+        }
     }
 
     function formatAll(root) {
@@ -56,8 +59,8 @@
         });
     }
 
-    document.addEventListener('input', onInput);
-    document.addEventListener('focusout', onBlur);
+    document.addEventListener('input', onInput, true);
+    document.addEventListener('focusout', onBlur, true);
     document.addEventListener('DOMContentLoaded', function () { formatAll(); });
 
     // Re-apply the display format after Livewire re-renders (modals open, save, clear...).

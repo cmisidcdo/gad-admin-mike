@@ -75,7 +75,7 @@ class PlanBudgetDetail extends Component
         $this->entryId = null;
         $this->entry = [
             'focused' => '', 'gender_issue' => '', 'title_description' => '', 'supporting_statistics' => '',
-            'statistics_source' => '', 'ppa_sector' => '', 'gad_objective' => '', 'lgu_program' => '',
+            'statistics_source' => '', 'ppa_sector' => [], 'gad_objective' => '', 'lgu_program' => '',
             'activity_category' => '', 'other_activity_category' => '', 'gad_activity' => '',
             'date_of_implementation' => '', 'performance_indicator' => '', 'moe' => '', 'ps' => '', 'co' => '',
         ];
@@ -85,7 +85,7 @@ class PlanBudgetDetail extends Component
     private function resetAttr()
     {
         $this->attrId = null;
-        $this->attr = ['ppa_sector' => '', 'title' => '', 'checklist' => '', 'hgdg_score' => '', 'total_annual_budget' => ''];
+        $this->attr = ['ppa_sector' => [], 'title' => '', 'checklist' => '', 'hgdg_score' => '', 'total_annual_budget' => ''];
         $this->resetValidation();
     }
 
@@ -183,7 +183,8 @@ class PlanBudgetDetail extends Component
             'entry.title_description' => 'required|string',
             'entry.supporting_statistics' => 'nullable|string',
             'entry.statistics_source' => 'nullable|string',
-            'entry.ppa_sector' => 'required|string',
+            'entry.ppa_sector' => 'required|array|min:1',
+            'entry.ppa_sector.*' => 'in:' . implode(',', config('gad.ppa_sectors')),
             'entry.gad_objective' => 'required|string',
             'entry.lgu_program' => 'required|string',
             'entry.activity_category' => 'required|string',
@@ -199,6 +200,7 @@ class PlanBudgetDetail extends Component
         ]);
 
         $data = $this->entry;
+        $data['ppa_sector'] = implode(', ', $data['ppa_sector']);
         foreach (['moe', 'ps', 'co'] as $k) {
             $data[$k] = $data[$k] === '' || $data[$k] === null ? 0 : $data[$k];
         }
@@ -221,6 +223,7 @@ class PlanBudgetDetail extends Component
         $this->entry = collect($row->only(array_keys($this->entry)))
             ->map(fn ($v) => $v ?? '')
             ->all();
+        $this->entry['ppa_sector'] = array_values(array_filter(array_map('trim', explode(',', (string) $row->ppa_sector))));
         $this->entry['date_of_implementation'] = optional($row->date_of_implementation)->format('Y-m-d') ?? '';
         $this->openForm = 'org';
     }
@@ -233,7 +236,8 @@ class PlanBudgetDetail extends Component
     {
         $this->ensureEditable();
         $this->validate([
-            'attr.ppa_sector' => 'required|string',
+            'attr.ppa_sector' => 'required|array|min:1',
+            'attr.ppa_sector.*' => 'in:' . implode(',', config('gad.ppa_sectors')),
             'attr.title' => 'required|string|max:255',
             'attr.checklist' => 'required|string',
             'attr.hgdg_score' => 'required|numeric|min:0|max:20',
@@ -242,10 +246,13 @@ class PlanBudgetDetail extends Component
             'attr.*.required' => 'Required.',
         ]);
 
+        $data = $this->attr;
+        $data['ppa_sector'] = implode(', ', $data['ppa_sector']);
+
         if ($this->attrId) {
-            $this->plan->attributedPrograms()->findOrFail($this->attrId)->update($this->attr);
+            $this->plan->attributedPrograms()->findOrFail($this->attrId)->update($data);
         } else {
-            $this->plan->attributedPrograms()->create($this->attr);
+            $this->plan->attributedPrograms()->create($data);
         }
 
         $this->resetAttr();
@@ -258,6 +265,7 @@ class PlanBudgetDetail extends Component
         $row = $this->plan->attributedPrograms()->findOrFail($id);
         $this->attrId = $row->id;
         $this->attr = collect($row->only(array_keys($this->attr)))->map(fn ($v) => $v ?? '')->all();
+        $this->attr['ppa_sector'] = array_values(array_filter(array_map('trim', explode(',', (string) $row->ppa_sector))));
         $this->openForm = 'attributed';
     }
 
@@ -378,7 +386,7 @@ class PlanBudgetDetail extends Component
 
         $attributed = $this->plan->attributedPrograms()
             ->with('remarks')
-            ->when($this->categoryFilter && $this->openForm === 'attributed', fn ($q) => $q->where('ppa_sector', $this->categoryFilter))
+            ->when($this->categoryFilter && $this->openForm === 'attributed', fn ($q) => $q->where('ppa_sector', 'like', '%' . $this->categoryFilter . '%'))
             ->orderBy('id')->get();
 
         $linkedAr = $this->plan->accomplishmentReport;

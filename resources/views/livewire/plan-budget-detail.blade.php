@@ -147,12 +147,22 @@
                     <textarea class="gad-input" placeholder="Enter Text..." wire:model="entry.statistics_source"></textarea>
                 </div>
 
-                <div class="figma-gpb-col" style="flex:0 0 115px;">
+                <div class="figma-gpb-col" style="flex:0 0 140px;">
                     <label>PPA Sectors <span class="req">*</span></label>
-                    <select class="gad-select" style="{{ $field('entry.ppa_sector') }}" wire:model="entry.ppa_sector">
-                        <option value="">Select...</option>
-                        @foreach ($cfg['ppa_sectors'] as $o)<option>{{ $o }}</option>@endforeach
-                    </select>
+                    <div class="gad-multiselect" x-data="{ open: false }" @click.outside="open = false">
+                        <button type="button" class="gad-select gad-multiselect-btn" style="{{ $field('entry.ppa_sector') }}" @click="open = !open">
+                            <span class="text-truncate" x-text="($wire.entry.ppa_sector && $wire.entry.ppa_sector.length) ? $wire.entry.ppa_sector.join(', ') : 'Select...'"></span>
+                            <i class="bi bi-chevron-down ms-1" style="font-size:10px; flex-shrink:0"></i>
+                        </button>
+                        <div class="gad-multiselect-menu" x-show="open" x-cloak>
+                            @foreach ($cfg['ppa_sectors'] as $o)
+                            <label class="gad-multiselect-item">
+                                <input type="checkbox" value="{{ $o }}" wire:model="entry.ppa_sector">
+                                <span>{{ $o }}</span>
+                            </label>
+                            @endforeach
+                        </div>
+                    </div>
                 </div>
 
                 <div class="figma-gpb-col" style="flex:1 1 140px;">
@@ -237,10 +247,21 @@
         <div class="form-panel form-grid">
             <div class="row g-2">
                 <div class="col-2"><label>PPA Sectors <span class="req">*</span></label>
-                    <select class="gad-select" style="{{ $field('attr.ppa_sector') }}" wire:model="attr.ppa_sector">
-                        <option value="">Select...</option>
-                        @foreach ($cfg['ppa_sectors'] as $o)<option>{{ $o }}</option>@endforeach
-                    </select></div>
+                    <div class="gad-multiselect" x-data="{ open: false }" @click.outside="open = false">
+                        <button type="button" class="gad-select gad-multiselect-btn" style="{{ $field('attr.ppa_sector') }}" @click="open = !open">
+                            <span class="text-truncate" x-text="($wire.attr.ppa_sector && $wire.attr.ppa_sector.length) ? $wire.attr.ppa_sector.join(', ') : 'Select...'"></span>
+                            <i class="bi bi-chevron-down ms-1" style="font-size:10px; flex-shrink:0"></i>
+                        </button>
+                        <div class="gad-multiselect-menu" x-show="open" x-cloak>
+                            @foreach ($cfg['ppa_sectors'] as $o)
+                            <label class="gad-multiselect-item">
+                                <input type="checkbox" value="{{ $o }}" wire:model="attr.ppa_sector">
+                                <span>{{ $o }}</span>
+                            </label>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
                 <div class="col-4"><label>Title of LGU Program or Project <span class="req">*</span></label>
                     <input class="gad-input" style="{{ $field('attr.title') }}" placeholder="Enter Text..." wire:model="attr.title"></div>
                 <div class="col-2"><label>Checklist <span class="req">*</span></label>

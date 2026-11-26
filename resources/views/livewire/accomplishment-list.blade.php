@@ -184,7 +184,7 @@
                 @error('year') <div class="error-text mb-1">{{ $message }}</div> @enderror
                 <div class="gad-field-row">
                     <span class="gad-label">Total Office Budget</span>
-                    <input type="text" inputmode="decimal" autocomplete="off" class="gad-input money-input" wire:model="totalOfficeBudget">
+                    <input type="text" inputmode="decimal" autocomplete="off" placeholder="0.00" class="gad-input money-input" wire:model="totalOfficeBudget">
                 </div>
                 @error('totalOfficeBudget') <div class="error-text mb-2">{{ $message }}</div> @enderror
                 <div class="text-end">
